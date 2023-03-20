@@ -7,25 +7,31 @@ import discord
 import requests as requests
 from discord import Message, User
 from discord.ext import commands
-from discord.ext.commands import Context, CommandError
+from discord.ext.commands import Context, CommandError, is_owner
 
 
 def fetch_config():
+    if not os.path.exists('config.json'):
+        return
     with open('config.json') as f:
         return json.load(f)
 
 
 def fetch_users():
+    if not os.path.exists('allowed_users.txt'):
+        return
     with open('allowed_users.txt') as f:
         return [int(x) for x in f.read().splitlines()]
 
 
 def fetch_models():
+    if not os.path.exists('models.json'):
+        return
     with open('models.json') as f:
         return json.load(f)
 
 
-config = fetch_config()
+config = fetch_config() or dict()
 BASE_URL = "https://api.runpod.ai/v1"
 
 intents = discord.Intents.default()
@@ -38,7 +44,7 @@ models = fetch_models()
 
 headers = {
     "Content-Type": "application/json",
-    "Authorization": f"Bearer {config['RUNPOD_KEY']}"
+    "Authorization": f"Bearer {config.get('RUNPOD_KEY', 'NO_KEY')}"
 }
 
 
@@ -133,11 +139,20 @@ def make_params(user_id, prompt) -> dict:
     if height is None:
         height = 512
 
+    model_id = get_setting(user_id, "model_id")
+    negative_prompts = get_setting(user_id, "negative_prompt")
+
+    if negative_prompts is None:
+        negative_prompt = ""
+    else:
+        negative_prompt = json.loads(negative_prompts).get(str(model_id), "")
+
     return {
         "input": {
             "prompt": prompt,
             "width": width,
-            "height": height
+            "height": height,
+            "negative_prompt": negative_prompt
         }
     }
 
@@ -172,7 +187,7 @@ async def wait_job(message: Message, job_id: int, user_model: int):
         image_url = image['image']
         r = requests.get(image_url)
 
-        with open(f"images/{job_id}-{index}.png", "wb") as f:
+        with open(f"images/{job_id}.png", "wb") as f:
             f.write(r.content)
 
     return output, message
@@ -189,26 +204,26 @@ async def create_image(prompt: str, message: Message, author: User):
     output, message = await wait_job(message, job_id, user_model)
 
     for image in output:
-        sql_statement: str = f"INSERT INTO images (job_id, seed, prompt, author_id, model_id) VALUES (?, ?, ?, ?, ?)"
-        cur.execute(sql_statement, [job_id, image['seed'], prompt, author.id, user_model])
+        sql_statement: str = f"INSERT INTO images (job_id, seed, parameters, author_id, model_id) VALUES (?, ?, ?, ?, ?)"
+        cur.execute(sql_statement, [job_id, image['seed'], json.dumps(params), author.id, user_model])
     con.commit()
     return job_id
 
 
-async def make_image(prompt, model, message, author):
-    con = sqlite3.connect(config['DATABASE_FILE'])
-    cur = con.cursor()
+async def make_image(prompt, current_model, message, author):
+    with sqlite3.connect(config['DATABASE_FILE']) as con:
+        cur = con.cursor()
 
-    params = make_params(author.id, prompt)
-    job_id = make_job(params, model)
-    output, message = await wait_job(message, job_id, model)
+        params = make_params(author.id, prompt)
+        job_id = make_job(params, current_model)
+        output, message = await wait_job(message, job_id, current_model)
 
-    for image in output:
-        sql_statement: str = "INSERT INTO images (job_id, seed, prompt, author_id, model_id) VALUES (?, ?, ?, ?, ?)"
-        cur.execute(sql_statement, [job_id, image['seed'], prompt, author.id, model])
-    con.commit()
+        for image in output:
+            sql_statement: str = "INSERT INTO images (job_id, seed, parameters, author_id, model_id) VALUES (?, ?, ?, ?, ?)"
+            cur.execute(sql_statement, [job_id, image['seed'], prompt, author.id, current_model])
+        con.commit()
 
-    return job_id
+        return job_id
 
 
 async def multicreate_image(prompt: str, message: Message, author: User):
@@ -250,7 +265,7 @@ async def create(ctx: Context, *args):
 
     job_ids = get_job_ids_from_task(create_task)
 
-    file_list = [discord.File(f"images/{jobs}-0.png") for jobs in job_ids]
+    file_list = [discord.File(f"images/{jobs}") for jobs in job_ids]
     await message.edit(attachments=file_list)
 
     if multi:
@@ -273,6 +288,28 @@ async def settings(ctx: Context):
                                       "use the `set model` command",
                           color=0x00ff00)
     await ctx.send("", embed=embed)
+
+
+def get_model_list():
+    model_list = []
+    for current_model in models:
+        model_list.append(
+            f"**{current_model['name']}** - aliases: `{', '.join(current_model['aliases'])}`"
+        )
+    return "\n".join(model_list)
+
+
+def lookup_job(job_id: str):
+    with sqlite3.connect(config['DATABASE_FILE']) as con:
+        cur = con.cursor()
+        find_job_sql = "SELECT * FROM images WHERE job_id = ?"
+
+        cur.execute(find_job_sql, [job_id])
+        job = cur.fetchone()
+
+        if job is None:
+            return None
+        return job[0]
 
 
 @settings.command()
@@ -315,23 +352,64 @@ async def dimension(ctx: Context, dim: int = None):
     await ctx.reply(f"Your {invoked_name} has been set to {dim}.")
 
 
-def get_model_list():
-    model_list = []
-    for current_model in models:
-        model_list.append(
-            f"**{current_model['name']}** - aliases: `{', '.join(current_model['aliases'])}`"
-        )
-    return "\n".join(model_list)
+@settings.group()
+async def negative(ctx: Context, model_name: str = None, *args):
+    if model_name is None:
+        await ctx.send("Please provide a model name, here are the options:\n" + get_model_list())
+        return
+
+    if model_name == "list":
+        negative_prompt_str = get_setting_default(ctx.author.id, "negative_prompt", "{}")
+        negative_prompt = json.loads(negative_prompt_str)
+        negative_prompt_list = []
+        for model_id in range(len(models)):
+            negative_prompt_list.append(f"{models[model_id]['name']} - `{negative_prompt.get(str(model_id), 'None')}`")
+        await ctx.reply("Your negative prompts:\n" + "\n".join(negative_prompt_list))
+        return
+
+    if model_name == "reset":
+        set_user_setting(ctx.author.id, "negative_prompt", "{}")
+        await ctx.reply("Your negative prompts have been reset.")
+        return
+
+    model_id = get_model_from_alias(model_name.lower())
+
+    if model_id is None:
+        await ctx.send("That model does not exist. Here are the options:\n" + get_model_list())
+        return
+    model_id = str(model_id)
+
+    if len(args) == 0:
+        await ctx.send("Please provide a negative prompt.")
+        return
+
+    negative_prompt_str = get_setting_default(ctx.author.id, "negative_prompt", "{}")
+    negative_prompt = json.loads(negative_prompt_str)
+
+    negative_prompt[model_id] = " ".join(args)
+    set_user_setting(ctx.author.id, "negative_prompt", json.dumps(negative_prompt))
+    await ctx.reply(f"Your negative prompt for {models[int(model_id)]['name']} has been set to "
+                    f"`{negative_prompt[model_id]}`")
 
 
-def set_user_model(user_id, model_id):
-    with sqlite3.connect(config['DATABASE_FILE']) as con:
-        cur = con.cursor()
-        delete_previous_model_sql = "DELETE FROM user_settings WHERE user_id = ?"
-        cur.execute(delete_previous_model_sql, [user_id])
+@is_owner()
+@bot.command()
+async def view(ctx: Context, job_id: str = None):
+    if job_id is None:
+        await ctx.reply("Please provide a job id.")
+        return
 
-        insert_new_model_sql = "INSERT INTO user_settings (user_id, model_id) VALUES (?, ?)"
-        cur.execute(insert_new_model_sql, [user_id, model_id])
+    job = lookup_job(job_id)
+    if job is None:
+        await ctx.reply("That job id does not exist.")
+        return
+
+    job_prompt: str = job[2]
+    if job_prompt.startswith("{"):
+        job_prompt = json.loads(job_prompt)['prompt']
+
+    message = await ctx.reply(f"Now viewing job id: `{job_id}`, its prompt was `{job_prompt}`.")
+    await message.add_files(discord.File(f"images/{job_id}.png"))
 
 
 def get_model_from_alias(alias):
@@ -381,7 +459,7 @@ async def on_message(message: Message):
             create_image(prompt, reference_message, message.author)
         )])
         job_id = get_job_ids_from_task(create_task)[0]
-        await reference_message.add_files(discord.File(f"images/{job_id}-0.png"))
+        await reference_message.add_files(discord.File(f"images/{job_id}.png"))
         return
 
     if message.content in ["no", "delete", "stop", "cancel", "nope", "n"]:
@@ -446,7 +524,7 @@ if __name__ == "__main__":
     run_setup_wizard = False
 
     # Make sure all the files exist
-    for file in ["config.json", "allowed_users.txt", "models.json", config['DATABASE_FILE']]:
+    for file in ["config.json", "allowed_users.txt", "models.json"]:
         if not os.path.isfile(file):
             run_setup_wizard = True
 
