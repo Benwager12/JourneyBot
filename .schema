@@ -6,14 +6,6 @@ create table images (
     model_id  integer
 );
 
-create table models (
-    id          integer
-        primary key autoincrement,
-    name        varchar,
-    endpoint_id varchar,
-    aliases     varchar
-);
-
 create table user_settings (
     user_id  varchar,
     model_id integer,

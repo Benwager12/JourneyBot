@@ -1,0 +1,27 @@
+[
+	{
+		"name": "OpenJourney",
+		"endpoint_id": "sd-openjourney",
+		"aliases": ["openjourney", "oj"]
+	},
+	{
+		"name": "Stable Diffusion v1",
+		"endpoint_id": "stable-diffusion-v1",
+		"aliases": ["sd1", "sdv1"]
+	},
+	{
+		"name": "Stable Diffusion v2",
+		"endpoint_id": "stable-diffusion-v2",
+		"aliases": ["sd2", "sdv2"]
+	},
+	{
+		"name": "Anything v3",
+		"endpoint_id": "sd-anything-v3",
+		"aliases": ["a3", "anything3", "av3", "anythingv3"]
+	},
+	{
+		"name": "Anything v4",
+		"endpoint_id": "sd-anything-v4",
+		"aliases": ["a4", "anything4", "av4", "anythingv4"]
+	}
+]

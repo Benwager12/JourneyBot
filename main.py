@@ -24,10 +24,8 @@ def fetch_users():
 
 
 def fetch_models():
-    with sqlite3.connect() as con:
-        cur = con.cursor()
-        cur.execute("SELECT * FROM models")
-        return {item[0]: item[1::] for item in cur.fetchall()}
+    with open('models.json') as f:
+        return json.load(f)
 
 
 def set_user_setting(user_id: int, setting: str, value):
@@ -62,7 +60,7 @@ headers = {
 
 
 def make_job(params, user_model) -> int:
-    run_url = f"{BASE_URL}/{models[user_model][1]}/run"
+    run_url = f"{BASE_URL}/{models[user_model]['endpoint_id']}/run"
     response = requests.post(run_url, headers=headers, json=params)
     response_json = response.json()
 
@@ -70,7 +68,7 @@ def make_job(params, user_model) -> int:
 
 
 def get_job_status(job_id, user_model) -> (int, str):
-    status_url = f"{BASE_URL}/{models[user_model][1]}/status/{job_id}"
+    status_url = f"{BASE_URL}/{models[user_model]['endpoint_id']}/status/{job_id}"
     response = requests.post(status_url, headers=headers)
 
     response_json = response.json()
@@ -169,7 +167,7 @@ async def create_image(prompt: str, message: Message, author: User):
     con = sqlite3.connect(config['DATABASE_FILE'])
     cur = con.cursor()
 
-    user_model = get_setting_default(author.id, "model_id", 1)
+    user_model = get_setting_default(author.id, "model_id", 0)
     params = make_params(author.id, prompt)
 
     job_id = make_job(params, user_model)
@@ -240,8 +238,8 @@ async def settings(ctx: Context):
         print(f"{ctx.author.name} ({ctx.author.id}) tried to use the bot.")
         return
 
-    user_model = get_setting_default(ctx.author.id, "model_id", 1)
-    modelstr = models[user_model][0]
+    user_model = get_setting_default(ctx.author.id, "model_id", 0)
+    modelstr = models[user_model]['name']
     width = get_setting_default(ctx.author.id, "width", 512)
     height = get_setting_default(ctx.author.id, "height", 512)
 
@@ -254,7 +252,7 @@ async def settings(ctx: Context):
 
 
 def get_model_list():
-    model_list = [f"**{models[model_id][0]}** - aliases: `{models[model_id][2].replace(',', ', ')}`"
+    model_list = [f"**{models[model_id]['name']}** - aliases: `{models[model_id]['aliases'].replace(',', ', ')}`"
                   for model_id in models]
     return "\n".join(model_list)
 
@@ -271,8 +269,8 @@ def set_user_model(user_id, model_id):
 
 def get_model_from_alias(alias):
     for model_id in models:
-        aliases = models[model_id][2].split(",")
-        if alias.lower() in aliases or alias.lower() == models[model_id][0].lower():
+        aliases = models[model_id]['aliases'].split(",")
+        if alias.lower() in aliases or alias.lower() == models[model_id]['name'].lower():
             return model_id
     return None
 
@@ -337,7 +335,7 @@ async def set(ctx: Context, *args):
             return
 
         set_user_setting(ctx.author.id, "model_id", model_id)
-        await ctx.reply(f"Your model has been set to {models[model_id][0]}.")
+        await ctx.reply(f"Your model has been set to {models[model_id]['name']}.")
         return
 
     if setting in ["width", "height"]:
@@ -402,15 +400,10 @@ async def on_message(message: Message):
         await reference_message.delete()
 
 if __name__ == "__main__":
-    if not os.path.isfile("config.json"):
-        print("Please create a config.json file.")
-        exit(1)
-    if not os.path.isfile("allowed_users.txt"):
-        print("Please create a allowed_users.txt file.")
-        exit(1)
-    if not os.path.isfile(config['DATABASE_FILE']):
-        print("Please create a database file.")
-        exit(1)
+    for file in ["config.json", "allowed_users.txt", "models.json", config['DATABASE_FILE']]:
+        if not os.path.isfile(file):
+            print("Please create a " + file + " file.")
+            exit()
     if not os.path.exists("images"):
         os.mkdir("images")
 
