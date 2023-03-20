@@ -66,7 +66,7 @@ def set_user_setting(user_id: int, setting: str, value):
         cur.execute(user_model_sql, [user_id])
         if cur.fetchone() is None:
             sql_statement = f"INSERT INTO user_settings (user_id, {setting}) VALUES (?, ?)"
-            cur.execute(sql_statement, [setting, value])
+            cur.execute(sql_statement, [user_id, value])
         else:
             sql_statement = f"UPDATE user_settings SET {setting} = ? WHERE user_id = ?"
             cur.execute(sql_statement, [value, user_id])
