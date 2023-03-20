@@ -217,6 +217,12 @@ async def multicreate_image(prompt: str, message: Message, author: User):
 
 @bot.command(aliases=["c", "make", "generate"])
 async def create(ctx: Context, *args):
+    multi = False
+
+    if len(args) >= 1 and args[0] == "multi":
+        multi = True
+        args = args[1:]
+
     if len(args) == 0:
         await ctx.send("Please provide a prompt.")
         return
@@ -233,13 +239,18 @@ async def create(ctx: Context, *args):
 
     message = await ctx.reply("Making a photo with prompt `" + prompt + "`...")
 
-    create_task = await asyncio.wait([asyncio.create_task(
-        create_image(prompt, message, ctx.author)
-    )])
+    if not multi:
+        create_task = await asyncio.wait([asyncio.create_task(create_image(prompt, message, ctx.author))])
+    else:
+        create_task = await multicreate_image(prompt, message, ctx.author)
 
-    job_id = get_job_ids_from_task(create_task)[0]
+    job_ids = get_job_ids_from_task(create_task)
 
-    await message.add_files(discord.File("images/" + str(job_id) + "-0.png"))
+    file_list = [discord.File(f"images/{jobs}-0.png") for jobs in job_ids]
+    await message.edit(attachments=file_list)
+
+    if multi:
+        await ctx.reply("Your multicreate has finished.")
 
 
 @bot.group(aliases=["set"])
@@ -276,7 +287,7 @@ async def model(ctx: Context, model_name: str = None):
     await ctx.reply(f"Your model has been set to {models[model_id]['name']}.")
 
 
-@settings.command(aliases=["width", "height"])
+@settings.command(aliases=["width", "height", "dim", "d"])
 async def dimension(ctx: Context, dim: int = None):
     dimension_sizes = [128, 256, 384, 448, 512, 576, 640, 704, 768]
     if dim is None:
@@ -287,13 +298,17 @@ async def dimension(ctx: Context, dim: int = None):
         await ctx.send(f"Please provide a {ctx.invoked_with} that is between `{dimension_sizes}`.")
         return
 
-    if ctx.invoked_with.lower() in ["width", "dimension"]:
+    if ctx.invoked_with.lower() in ["width", "dimension", "dim", "d"]:
         set_user_setting(ctx.author.id, "width", dim)
 
-    if ctx.invoked_with.lower() in ["height", "dimension"]:
+    if ctx.invoked_with.lower() in ["height", "dimension", "dim", "d"]:
         set_user_setting(ctx.author.id, "height", dim)
 
-    await ctx.reply(f"Your {ctx.invoked_with.lower()} has been set to {dim}.")
+    invoked_name = ctx.invoked_with.lower()
+    if ctx.invoked_with.lower() in ["dimension", "dim", "d"]:
+        invoked_name = "width and height"
+
+    await ctx.reply(f"Your {invoked_name} has been set to {dim}.")
 
 
 def get_model_list():
