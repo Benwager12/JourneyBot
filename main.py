@@ -223,7 +223,7 @@ async def create(ctx: Context, *args):
     if ctx.invoked_with in ["mc", "mcreate", "mgenerate", "multicreate"]:
         multi = True
 
-    if len(args) >= 1 and args[0] == "multi":
+    if len(args) >= 1 and args[0] == "-multi":
         multi = True
         args = args[1:]
 
@@ -393,14 +393,69 @@ async def on_message(message: Message):
     await bot.process_commands(message)
 
 
+def setup_wizard():
+    if not os.path.isfile("allowed_users.txt"):
+        print("Allowed users file does not exist, creating...")
+        print("Please enter the user IDs of the users who should be able to use the bot, "
+              "separated by a comma and a space. You can get a user's ID by right clicking their name and "
+              "clicking 'Copy ID'.")
+        inputted_users = input("Allowed users: ").split(", ")
+        with open("allowed_users.txt", "w") as f:
+            f.write("\n".join(inputted_users))
+    else:
+        print("Allowed users file already exists, skipping...")
+
+    if not os.path.isfile("config.json"):
+        print("Config file does not exist, creating...")
+        print("Please enter the token for your bot. You can get this from the Discord Developer Portal.")
+        token = input("Token: ")
+        print("Please enter your Runpod API key. You can get this from https://www.runpod.io/console/user/settings")
+        runpod_key = input("Runpod API key: ")
+        print("Please enter your user id. This is so you can use the bot's commands as the owner.")
+        owner_id = input("Owner ID: ")
+        print("Please enter the name of the database file. This is where the bot will store user settings.")
+        database_file = input("Database file: ")
+
+        config_json = {
+            "DISCORD_TOKEN": token,
+            "RUNPOD_KEY": runpod_key,
+            "OWNER_ID": owner_id,
+            "DATABASE_FILE": database_file
+        }
+        with open("config.json", "w", encoding='utf-8') as f:
+            json.dump(config_json, f, ensure_ascii=False, indent='\t')
+    else:
+        print("Config file already exists, skipping...")
+
+    if not os.path.isfile("models.json"):
+        print("Model file does not exist, downloading...")
+        model_file = requests.get("https://raw.githubusercontent.com/Benwager12/JourneyBot/master/models.json").json()
+        with open("models.json", "w", encoding='utf-8') as f:
+            json.dump(model_file, f, ensure_ascii=False, indent='\t')
+    else:
+        print("Model file already exists, skipping...")
+
+    if not os.path.exists("images"):
+        print("Images folder does not exist, creating...")
+        os.mkdir("images")
+    else:
+        print("Images folder already exists, skipping...")
+
+
 if __name__ == "__main__":
+    run_setup_wizard = False
+
     # Make sure all the files exist
     for file in ["config.json", "allowed_users.txt", "models.json", config['DATABASE_FILE']]:
         if not os.path.isfile(file):
-            print("Please create a " + file + " file.")
-            exit()
+            run_setup_wizard = True
+
     if not os.path.exists("images"):
-        os.mkdir("images")
+        run_setup_wizard = True
+
+    if run_setup_wizard:
+        print("Starting the setup wizard...")
+        setup_wizard()
 
     bot.run(config["DISCORD_TOKEN"])
 
