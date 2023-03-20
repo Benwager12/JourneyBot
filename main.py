@@ -7,15 +7,12 @@ import discord
 import requests as requests
 from discord import Message, User
 from discord.ext import commands
-from discord.ext.commands import Context
+from discord.ext.commands import Context, CommandError
 
 
 def fetch_config():
     with open('config.json') as f:
         return json.load(f)
-
-
-config = fetch_config()
 
 
 def fetch_users():
@@ -27,23 +24,8 @@ def fetch_models():
     with open('models.json') as f:
         return json.load(f)
 
-
-def set_user_setting(user_id: int, setting: str, value):
-    with sqlite3.connect(config['DATABASE_FILE']) as con:
-        cur = con.cursor()
-        user_model_sql = "SELECT model_id FROM user_settings WHERE user_id = ?"
-        cur.execute(user_model_sql, [user_id])
-        if cur.fetchone() is None:
-            sql_statement = "INSERT INTO user_settings (user_id, ?) VALUES (?, ?)"
-            cur.execute(sql_statement, [user_id, setting, value])
-        else:
-            sql_statement = f"UPDATE user_settings SET {setting} = ? WHERE user_id = ?"
-            cur.execute(sql_statement, [value, user_id])
-        con.commit()
-
-
+config = fetch_config()
 BASE_URL = "https://api.runpod.ai/v1"
-
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -57,6 +39,38 @@ headers = {
     "Content-Type": "application/json",
     "Authorization": f"Bearer {config['RUNPOD_KEY']}"
 }
+
+
+@bot.check
+async def is_allowed_user(ctx: Context):
+    return ctx.author.id in allowed_users or ctx.author.id == config['OWNER_ID']
+
+
+@bot.event
+async def on_command_error(ctx: Context, error: CommandError):
+    if isinstance(error, commands.CommandNotFound):
+        return
+
+    if isinstance(error, commands.CheckFailure):
+        print(f"User {ctx.author} ({ctx.author.id}) tried to use command {ctx.command}")
+        return
+
+    print(f"Command {ctx.command} failed with error {error.__class__.__name__} for reason \"{error.__cause__}\".")
+    raise error
+
+
+def set_user_setting(user_id: int, setting: str, value):
+    with sqlite3.connect(config['DATABASE_FILE']) as con:
+        cur = con.cursor()
+        user_model_sql = "SELECT model_id FROM user_settings WHERE user_id = ?"
+        cur.execute(user_model_sql, [user_id])
+        if cur.fetchone() is None:
+            sql_statement = f"INSERT INTO user_settings (user_id, {setting}) VALUES (?, ?)"
+            cur.execute(sql_statement, [setting, value])
+        else:
+            sql_statement = f"UPDATE user_settings SET {setting} = ? WHERE user_id = ?"
+            cur.execute(sql_statement, [value, user_id])
+        con.commit()
 
 
 def make_job(params, user_model) -> int:
@@ -203,10 +217,6 @@ async def multicreate_image(prompt: str, message: Message, author: User):
 
 @bot.command(aliases=["c", "make", "generate"])
 async def create(ctx: Context, *args):
-    if ctx.author.id not in allowed_users:
-        print(f"{ctx.author.name} ({ctx.author.id}) tried to use the bot.")
-        return
-
     if len(args) == 0:
         await ctx.send("Please provide a prompt.")
         return
@@ -232,28 +242,66 @@ async def create(ctx: Context, *args):
     await message.add_files(discord.File("images/" + str(job_id) + "-0.png"))
 
 
-@bot.command()
+@bot.group(aliases=["set"])
 async def settings(ctx: Context):
-    if ctx.author.id not in allowed_users:
-        print(f"{ctx.author.name} ({ctx.author.id}) tried to use the bot.")
+    if ctx.invoked_subcommand is not None:
         return
-
-    user_model = get_setting_default(ctx.author.id, "model_id", 0)
-    modelstr = models[user_model]['name']
-    width = get_setting_default(ctx.author.id, "width", 512)
-    height = get_setting_default(ctx.author.id, "height", 512)
+    settings_list = {
+        "Model": models[get_setting_default(ctx.author.id, "model_id", 0)]['name'],
+        "Width": get_setting_default(ctx.author.id, "width", 512),
+        "Height": get_setting_default(ctx.author.id, "height", 512)
+    }
+    settings_string = "\n".join([f"{setting} - {settings_list[setting]}" for setting in settings_list])
 
     embed = discord.Embed(title=f"Settings - {ctx.author.name}",
-                          description=f"Your current settings\n\nModel - {modelstr}\n"
-                                      f"Width - {width}\nHeight - {height}\n\nTo change your model, "
+                          description=f"Your current settings\n\n{settings_string}\n\nTo change your model, "
                                       "use the `set model` command",
                           color=0x00ff00)
     await ctx.send("", embed=embed)
 
 
+@settings.command()
+async def model(ctx: Context, model_name: str = None):
+    if model_name is None:
+        await ctx.send("Please provide a model name, here are the options:\n" + get_model_list())
+        return
+
+    model_id = get_model_from_alias(model_name.lower())
+
+    if model_id is None:
+        await ctx.send("That model does not exist. Here are the options:\n" + get_model_list())
+        return
+
+    set_user_setting(ctx.author.id, "model_id", model_id)
+    await ctx.reply(f"Your model has been set to {models[model_id]['name']}.")
+
+
+@settings.command(aliases=["width", "height"])
+async def dimension(ctx: Context, dim: int = None):
+    dimension_sizes = [128, 256, 384, 448, 512, 576, 640, 704, 768]
+    if dim is None:
+        await ctx.send(f"Please provide a {ctx.invoked_with}, it can be between `{dimension_sizes}`.")
+        return
+
+    if dim not in dimension_sizes:
+        await ctx.send(f"Please provide a {ctx.invoked_with} that is between `{dimension_sizes}`.")
+        return
+
+    if ctx.invoked_with.lower() in ["width", "dimension"]:
+        set_user_setting(ctx.author.id, "width", dim)
+
+    if ctx.invoked_with.lower() in ["height", "dimension"]:
+        set_user_setting(ctx.author.id, "height", dim)
+
+    await ctx.reply(f"Your {ctx.invoked_with.lower()} has been set to {dim}.")
+
+
 def get_model_list():
-    model_list = [f"**{models[model_id]['name']}** - aliases: `{models[model_id]['aliases'].replace(',', ', ')}`"
-                  for model_id in models]
+    model_list = []
+    for current_model in models:
+        model_list.append(
+            f"**{current_model['name']}** - aliases: `{', '.join(current_model['aliases'])}`"
+        )
     return "\n".join(model_list)
 
 
@@ -268,10 +316,9 @@ def set_user_model(user_id, model_id):
 
 
 def get_model_from_alias(alias):
-    for model_id in models:
-        aliases = models[model_id]['aliases'].split(",")
-        if alias.lower() in aliases or alias.lower() == models[model_id]['name'].lower():
-            return model_id
+    for index, current_model in enumerate(models):
+        if alias.lower() in current_model['aliases'] or alias.lower() == current_model['name'].lower():
+            return index
     return None
 
 
@@ -285,10 +332,6 @@ def get_job_ids_from_task(task):
 
 @bot.command()
 async def multicreate(ctx: Context, *args):
-    if ctx.author.id not in allowed_users:
-        print(f"{ctx.author.name} ({ctx.author.id}) tried to use the bot.")
-        return
-
     if len(args) == 0:
         await ctx.send("Please provide a prompt.")
         return
@@ -314,55 +357,8 @@ async def multicreate(ctx: Context, *args):
     await ctx.reply("Your multicreate has finished.")
 
 
-@bot.command()
-async def set(ctx: Context, *args):
-    if len(args) == 0:
-        await ctx.send("Please provide a setting, this would be either `model`, `width` or `height`.")
-        return
-    
-    setting = args[0].lower()
-    
-    if setting == "model":
-        if len(args) == 1:
-            await ctx.send("Please provide a model, here are the options:\n" + get_model_list())
-            return
-
-        model_arg = args[1]
-        model_id = get_model_from_alias(model_arg)
-
-        if model_id is None:
-            await ctx.send("That model does not exist. Here are the options:\n" + get_model_list())
-            return
-
-        set_user_setting(ctx.author.id, "model_id", model_id)
-        await ctx.reply(f"Your model has been set to {models[model_id]['name']}.")
-        return
-
-    if setting in ["width", "height"]:
-        if len(args) == 1:
-            await ctx.send(f"Please provide a {setting}.")
-            return
-
-        dimension = args[1]
-
-        if not dimension.isdigit() or int(dimension) not in [128, 256, 384, 448, 512, 576, 640, 704, 768]:
-            await ctx.send(f"That is not a valid {setting}, the valid {setting}s are "
-                           "[128, 256, 384, 448, 512, 576, 640, 704, 768].")
-            return
-
-        set_user_setting(ctx.author.id, setting, int(dimension))
-        await ctx.reply(f"Your {setting} has been set to {dimension}.")
-        return
-
-    await ctx.reply("That is not a valid setting, the valid settings are `model`, `width` and `height`.")
-
-
 @bot.event
 async def on_message(message: Message):
-    if message.content not in ["no", "delete", "stop", "cancel", "nope", "retry", "redo", "r", "n"]:
-        await bot.process_commands(message)
-        return
-
     if message.author == bot.user:
         await bot.process_commands(message)
         return
@@ -370,6 +366,7 @@ async def on_message(message: Message):
     if message.reference is None:
         await bot.process_commands(message)
         return
+
     channel = await bot.fetch_channel(message.reference.channel_id)
     reference_message = await channel.fetch_message(message.reference.message_id)
 
@@ -378,6 +375,7 @@ async def on_message(message: Message):
         return
 
     if message.content in ["retry", "redo", "r"]:
+        # Redo the prompt that was given in the reference message
         prompt = reference_message.content.split("`")[1]
 
         create_task = await asyncio.wait([asyncio.create_task(
@@ -385,11 +383,19 @@ async def on_message(message: Message):
         )])
         job_id = get_job_ids_from_task(create_task)[0]
         await reference_message.add_files(discord.File(f"images/{job_id}-0.png"))
-    else:
+        return
+
+    if message.content in ["no", "delete", "stop", "cancel", "nope", "n"]:
+        # Delete the message
         await reference_message.delete()
+        return
+
+    # If no other keywords were used, then just process the commands
+    await bot.process_commands(message)
 
 
 if __name__ == "__main__":
+    # Make sure all the files exist
     for file in ["config.json", "allowed_users.txt", "models.json", config['DATABASE_FILE']]:
         if not os.path.isfile(file):
             print("Please create a " + file + " file.")
