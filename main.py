@@ -216,7 +216,7 @@ async def multicreate_image(prompt: str, message: Message, author: User):
     return await asyncio.wait(jobs)
 
 
-@bot.command(aliases=["c", "make", "generate", "mc", "mcreate", "mgenerate", "multicreate", "mcreate"])
+@bot.command(aliases=["c", "make", "generate", "mc", "mcreate", "mgenerate", "multicreate"])
 async def create(ctx: Context, *args):
     multi = False
 
@@ -348,6 +348,13 @@ def get_job_ids_from_task(task):
 
 
 @bot.event
+async def on_ready():
+    print("Bot created by Ben Wager.")
+    invite_link = f"https://discord.com/api/oauth2/authorize?client_id={bot.user.id}&permissions=2048&scope=bot"
+    print(f"Invite link: {invite_link}")
+
+
+@bot.event
 async def on_message(message: Message):
     if message.author == bot.user:
         await bot.process_commands(message)
@@ -394,3 +401,4 @@ if __name__ == "__main__":
         os.mkdir("images")
 
     bot.run(config["DISCORD_TOKEN"])
+
