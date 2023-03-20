@@ -220,8 +220,10 @@ async def multicreate_image(prompt: str, message: Message, author: User):
 async def create(ctx: Context, *args):
     multi = False
 
-    if ctx.invoked_with in ["mc", "mcreate", "mgenerate", "multicreate", "mcreate"] or \
-            len(args) >= 1 and args[0] == "multi":
+    if ctx.invoked_with in ["mc", "mcreate", "mgenerate", "multicreate"]:
+        multi = True
+
+    if len(args) >= 1 and args[0] == "multi":
         multi = True
         args = args[1:]
 
