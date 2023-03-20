@@ -357,17 +357,6 @@ async def set(ctx: Context, *args):
     await ctx.reply("That is not a valid setting, the valid settings are `model`, `width` and `height`.")
 
 
-@bot.command()
-async def test(ctx: Context, *args):
-    if ctx.author.id != config['OWNER_ID']:
-        return
-
-    message = " ".join(args)
-
-    await ctx.send(message)
-    await ctx.message.delete()
-
-
 @bot.event
 async def on_message(message: Message):
     if message.content not in ["no", "delete", "stop", "cancel", "nope", "retry", "redo", "r", "n"]:
@@ -398,6 +387,7 @@ async def on_message(message: Message):
         await reference_message.add_files(discord.File(f"images/{job_id}-0.png"))
     else:
         await reference_message.delete()
+
 
 if __name__ == "__main__":
     for file in ["config.json", "allowed_users.txt", "models.json", config['DATABASE_FILE']]:
