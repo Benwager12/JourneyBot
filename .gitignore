@@ -1,0 +1,6 @@
+/config.json
+/venv/
+/images/
+/*.sqlite3
+/.idea/
+/allowed_users.txt
