@@ -24,6 +24,7 @@ def fetch_models():
     with open('models.json') as f:
         return json.load(f)
 
+
 config = fetch_config()
 BASE_URL = "https://api.runpod.ai/v1"
 
@@ -211,15 +212,16 @@ async def make_image(prompt, model, message, author):
 
 
 async def multicreate_image(prompt: str, message: Message, author: User):
-    jobs = [asyncio.create_task(make_image(prompt, model, message, author)) for model in models]
+    jobs = [asyncio.create_task(make_image(prompt, model_id, message, author)) for model_id in range(len(models))]
     return await asyncio.wait(jobs)
 
 
-@bot.command(aliases=["c", "make", "generate"])
+@bot.command(aliases=["c", "make", "generate", "mc", "mcreate", "mgenerate", "multicreate", "mcreate"])
 async def create(ctx: Context, *args):
     multi = False
 
-    if len(args) >= 1 and args[0] == "multi":
+    if ctx.invoked_with in ["mc", "mcreate", "mgenerate", "multicreate", "mcreate"] or \
+            len(args) >= 1 and args[0] == "multi":
         multi = True
         args = args[1:]
 
@@ -343,33 +345,6 @@ def get_job_ids_from_task(task):
         for ti in t:
             ids.append(ti.result())
     return ids
-
-
-@bot.command()
-async def multicreate(ctx: Context, *args):
-    if len(args) == 0:
-        await ctx.send("Please provide a prompt.")
-        return
-
-    prompt = " ".join(args)
-
-    if "`" in prompt:
-        await ctx.reply("Please do not use backticks in your prompt.")
-        return
-
-    if "\"" in prompt or "'" in prompt:
-        await ctx.reply("Please do not use quotes in your prompt.")
-        return
-
-    message = await ctx.reply("Making a photo with prompt `" + prompt + "`...")
-
-    multicreate_task = await multicreate_image(prompt, message, ctx.author)
-
-    job_ids = get_job_ids_from_task(multicreate_task)
-
-    file_list = [discord.File(f"images/{jobs}") for jobs in job_ids]
-    await message.edit(attachments=file_list)
-    await ctx.reply("Your multicreate has finished.")
 
 
 @bot.event
