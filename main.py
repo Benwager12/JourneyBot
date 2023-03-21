@@ -5,7 +5,7 @@ import sqlite3
 
 import discord
 import requests as requests
-from discord import Message, User
+from discord import Message, User, Reaction
 from discord.ext import commands
 from discord.ext.commands import Context, CommandError, is_owner
 
@@ -159,6 +159,11 @@ def make_params(user_id, prompt) -> dict:
 
 async def wait_job(message: Message, job_id: int, user_model: int):
     output = None
+    message_beginning = message.content.split("\n")[0]
+    if len(message_beginning.split("`")) < 4:
+        job_ids = str(job_id)
+    else:
+        job_ids = message_beginning.split("`")[3]
 
     while output is None:
         await asyncio.sleep(5)
@@ -167,20 +172,21 @@ async def wait_job(message: Message, job_id: int, user_model: int):
         print(f"{code}: {response}")
         match code:
             case 0:
-                await message.edit(content=f"{message.content}\nHTTP request error!")
+                await message.edit(content=f"{message_beginning}\nHTTP request error!")
                 return
             case 1:
                 output = response
-                await message.edit(content=f"{message.content}\nImage has been generated, downloading...")
+                await message.edit(content=f"{message_beginning.replace(job_ids, job_ids + ', ' + str(job_id))}"
+                                           "\nImage has been generated, downloading...")
                 break
             case -1:
-                await message.edit(content=f"{message.content}\nError: {response}")
+                await message.edit(content=f"{message_beginning}\nError: {response}")
                 return
             case 2:
-                await message.edit(content=f"{message.content}\nImage is in queue...")
+                await message.edit(content=f"{message_beginning}\nImage is in queue...")
                 continue
             case 3:
-                await message.edit(content=f"{message.content}\nImage is being generated...")
+                await message.edit(content=f"{message_beginning}\nImage is being generated...")
                 continue
 
     for index, image in enumerate(output):
@@ -194,18 +200,24 @@ async def wait_job(message: Message, job_id: int, user_model: int):
 
 
 async def create_image(prompt: str, message: Message, author: User):
+    user_model = get_setting_default(author.id, "model_id", 0)
+    params = make_params(author.id, prompt)
+    return create_image_params(params, user_model, message, author)
+
+
+async def create_image_params(params, model_id, message: Message, author: User):
+    print(f"User {author} ({author.id}) is creating an image with model {models[model_id]['name']} and prompt "
+          f"\"{params['input']['prompt']}\".")
+
     con = sqlite3.connect(config['DATABASE_FILE'])
     cur = con.cursor()
 
-    user_model = get_setting_default(author.id, "model_id", 0)
-    params = make_params(author.id, prompt)
-
-    job_id = make_job(params, user_model)
-    output, message = await wait_job(message, job_id, user_model)
+    job_id = make_job(params, model_id)
+    output, message = await wait_job(message, job_id, model_id)
 
     for image in output:
         sql_statement: str = f"INSERT INTO images (job_id, seed, parameters, author_id, model_id) VALUES (?, ?, ?, ?, ?)"
-        cur.execute(sql_statement, [job_id, image['seed'], json.dumps(params), author.id, user_model])
+        cur.execute(sql_statement, [job_id, image['seed'], json.dumps(params), author.id, model_id])
     con.commit()
     return job_id
 
@@ -259,14 +271,22 @@ async def create(ctx: Context, *args):
     message = await ctx.reply("Making a photo with prompt `" + prompt + "`...")
 
     if not multi:
-        create_task = await asyncio.wait([asyncio.create_task(create_image(prompt, message, ctx.author))])
+        user_model = get_setting_default(ctx.author.id, "model_id", 0)
+        params = make_params(ctx.author.id, prompt)
+        create_task = await asyncio.wait([asyncio.create_task(
+            create_image_params(params, user_model, message, ctx.author)
+        )])
     else:
         create_task = await multicreate_image(prompt, message, ctx.author)
 
     job_ids = get_job_ids_from_task(create_task)
 
-    file_list = [discord.File(f"images/{jobs}") for jobs in job_ids]
-    await message.edit(attachments=file_list)
+    file_list = [discord.File(f"images/{jobs}.png") for jobs in job_ids]
+    job_id_list = ", ".join([f"{job}" for job in job_ids])
+    await message.edit(content=f"Making a photo with prompt `{prompt}`... (Jobs: `{job_id_list}`)",
+                       attachments=file_list)
+    await message.add_reaction("♻")
+    await message.add_reaction("❌")
 
     if multi:
         await ctx.reply("Your multicreate has finished.")
@@ -309,7 +329,7 @@ def lookup_job(job_id: str):
 
         if job is None:
             return None
-        return job[0]
+        return job
 
 
 @settings.command()
@@ -329,7 +349,7 @@ async def model(ctx: Context, model_name: str = None):
 
 
 @settings.command(aliases=["width", "height", "dim", "d"])
-async def dimension(ctx: Context, dim: int = None):
+async def dimension(ctx: Context, dim: int = None, *args):
     dimension_sizes = [128, 256, 384, 448, 512, 576, 640, 704, 768]
     if dim is None:
         await ctx.send(f"Please provide a {ctx.invoked_with}, it can be between `{dimension_sizes}`.")
@@ -339,17 +359,36 @@ async def dimension(ctx: Context, dim: int = None):
         await ctx.send(f"Please provide a {ctx.invoked_with} that is between `{dimension_sizes}`.")
         return
 
-    if ctx.invoked_with.lower() in ["width", "dimension", "dim", "d"]:
+    if len(args) == 0:
+        if ctx.invoked_with.lower() in ["width", "dimension", "dim", "d"]:
+            set_user_setting(ctx.author.id, "width", dim)
+
+        if ctx.invoked_with.lower() in ["height", "dimension", "dim", "d"]:
+            set_user_setting(ctx.author.id, "height", dim)
+
+        invoked_name = ctx.invoked_with.lower()
+
+        if ctx.invoked_with.lower() in ["dimension", "dim", "d"]:
+            invoked_name = "width and height"
+
+        await ctx.reply(f"Your {invoked_name} has been set to {dim}.")
+        return
+
+    if not args[0].isdigit():
+        await ctx.reply("Please make sure your second dimensions argument is a number.")
+        return
+
+    if len(args) >= 1 and ctx.invoked_with.lower() in ["dimension", "dim", "d"]:
+        if int(args[0]) not in dimension_sizes:
+            await ctx.reply("Make sure your second dimensions argument is in the list of valid dimensions.")
+            return
+
         set_user_setting(ctx.author.id, "width", dim)
+        set_user_setting(ctx.author.id, "height", int(args[0]))
+        await ctx.reply(f"Your width and height have been set to {dim} and {args[0]}.")
+        return
 
-    if ctx.invoked_with.lower() in ["height", "dimension", "dim", "d"]:
-        set_user_setting(ctx.author.id, "height", dim)
-
-    invoked_name = ctx.invoked_with.lower()
-    if ctx.invoked_with.lower() in ["dimension", "dim", "d"]:
-        invoked_name = "width and height"
-
-    await ctx.reply(f"Your {invoked_name} has been set to {dim}.")
+    await ctx.reply("Please provide the correct number of arguments.")
 
 
 @settings.group()
@@ -383,6 +422,19 @@ async def negative(ctx: Context, model_name: str = None, *args):
         await ctx.send("Please provide a negative prompt.")
         return
 
+    if len(args) == 1 and args[0].lower() == "reset":
+        negative_prompt_str = get_setting_default(ctx.author.id, "negative_prompt", "{}")
+        negative_prompt = json.loads(negative_prompt_str)
+
+        if model_id not in negative_prompt:
+            await ctx.reply("You don't have a negative prompt set for that model.")
+            return
+
+        del negative_prompt[model_id]
+        set_user_setting(ctx.author.id, "negative_prompt", json.dumps(negative_prompt))
+        await ctx.reply(f"Your negative prompt for {models[int(model_id)]['name']} has been reset.")
+        return
+
     negative_prompt_str = get_setting_default(ctx.author.id, "negative_prompt", "{}")
     negative_prompt = json.loads(negative_prompt_str)
 
@@ -392,7 +444,6 @@ async def negative(ctx: Context, model_name: str = None, *args):
                     f"`{negative_prompt[model_id]}`")
 
 
-@is_owner()
 @bot.command()
 async def view(ctx: Context, job_id: str = None):
     if job_id is None:
@@ -404,11 +455,15 @@ async def view(ctx: Context, job_id: str = None):
         await ctx.reply("That job id does not exist.")
         return
 
+    if not (is_owner() or int(job[3]) == ctx.author.id):
+        await ctx.reply("You cannot view something that is not your job.")
+        return
+
     job_prompt: str = job[2]
     if job_prompt.startswith("{"):
-        job_prompt = json.loads(job_prompt)['prompt']
+        job_prompt = json.loads(job_prompt)['input']['prompt']
 
-    message = await ctx.reply(f"Now viewing job id: `{job_id}`, its prompt was `{job_prompt}`.")
+    message = await ctx.reply(f"Now viewing prompt `{job_prompt}`, (Job ID: `{job_id}`).")
     await message.add_files(discord.File(f"images/{job_id}.png"))
 
 
@@ -451,18 +506,21 @@ async def on_message(message: Message):
         await bot.process_commands(message)
         return
 
-    if message.content in ["retry", "redo", "r"]:
+    if message.content.lower() in ["retry", "redo", "r"]:
         # Redo the prompt that was given in the reference message
-        prompt = reference_message.content.split("`")[1]
+        previous_job_id = reference_message.content.split("`")[3].split(",")[0]
+        job = lookup_job(previous_job_id)
+        model_id = job[4]
+        params = json.loads(job[2])
 
         create_task = await asyncio.wait([asyncio.create_task(
-            create_image(prompt, reference_message, message.author)
+            create_image_params(params, model_id, reference_message, message.author)
         )])
         job_id = get_job_ids_from_task(create_task)[0]
         await reference_message.add_files(discord.File(f"images/{job_id}.png"))
         return
 
-    if message.content in ["no", "delete", "stop", "cancel", "nope", "n"]:
+    if message.content.lower() in ["no", "delete", "stop", "cancel", "nope", "n"]:
         # Delete the message
         await reference_message.delete()
         return
@@ -470,6 +528,31 @@ async def on_message(message: Message):
     # If no other keywords were used, then just process the commands
     await bot.process_commands(message)
 
+
+@bot.event
+async def on_reaction_add(reaction: Reaction, user: User):
+    if user == bot.user:
+        return
+
+    if reaction.message.author != bot.user:
+        return
+
+    if reaction.emoji in ["🔁", "🔄", "🔂", "🔀", "♻"]:
+        # Redo the prompt that was given in the reference message
+        previous_job_id = reaction.message.content.split("`")[3].split(",")[0]
+        job = lookup_job(previous_job_id)
+        model_id = job[4]
+        params = json.loads(job[2])
+
+        create_task = await asyncio.wait([asyncio.create_task(
+            create_image_params(params, model_id, reaction.message, user)
+        )])
+        job_id = get_job_ids_from_task(create_task)[0]
+        await reaction.message.add_files(discord.File(f"images/{job_id}.png"))
+
+    if reaction.emoji in ["❌", "🚫", "🛑", "❎"]:
+        # Delete the message
+        await reaction.message.delete()
 
 def setup_wizard():
     if not os.path.isfile("allowed_users.txt"):
