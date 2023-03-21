@@ -482,6 +482,62 @@ def get_job_ids_from_task(task):
     return ids
 
 
+def prompt_parse(prompt: str, argument_list: list = []):
+    tokens = []
+    token_index = 0
+    in_quotes = False
+    parameter_locations = []
+
+    for c in prompt:
+        if len(tokens) == token_index:
+            tokens.append("")
+
+        if c == " " and not in_quotes:
+            token_index += 1
+            continue
+
+        if c == "\"":
+            in_quotes = not in_quotes
+            continue
+
+        if tokens[token_index] == "--":
+            parameter_locations.append(token_index)
+            token_index += 1
+
+        if len(tokens) == token_index:
+            tokens.append("")
+
+        tokens[token_index] += c
+
+    parameters = {}
+
+    for x in parameter_locations:
+        if tokens[x + 1] in argument_list:
+            parameters[tokens[x + 1]] = tokens[x + 2]
+
+    for x in reversed(parameter_locations):
+        if tokens[x + 1] in argument_list:
+            for i in reversed(range(0, 3)):
+                del tokens[x + i]
+
+    index = 0
+    while index < len(tokens):
+        if tokens[index] == "--":
+            del tokens[index]
+            tokens[index] = "--" + tokens[index]
+        index += 1
+
+    for key, value in parameters.items():
+        if value.lower() == "true":
+            parameters[key] = True
+        elif value.lower() == "false":
+            parameters[key] = False
+        elif value.isnumeric():
+            parameters[key] = int(value)
+
+    return " ".join(tokens), parameters
+
+
 @bot.event
 async def on_ready():
     print("Bot created by Ben Wager.")
@@ -506,11 +562,18 @@ async def on_message(message: Message):
         await bot.process_commands(message)
         return
 
-    if message.content.lower() in ["retry", "redo", "r"]:
+    if message.content.lower().startswith(("retry", "redo", "r")):
         # Redo the prompt that was given in the reference message
         previous_job_id = reference_message.content.split("`")[3].split(",")[0]
         job = lookup_job(previous_job_id)
         model_id = job[4]
+
+        # See if a model was specified
+        if len(message.content.split(" ")) >= 2:
+            model_id = get_model_from_alias(message.content.split(" ")[1])
+            if model_id is None:
+                model_id = job[4]
+
         params = json.loads(job[2])
 
         create_task = await asyncio.wait([asyncio.create_task(
