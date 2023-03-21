@@ -147,13 +147,29 @@ def make_params(user_id, prompt) -> dict:
     else:
         negative_prompt = json.loads(negative_prompts).get(str(model_id), "")
 
+    settings_output = {
+        "prompt": prompt,
+        "width": width,
+        "height": height,
+        "negative_prompt": negative_prompt
+    }
+
+    output_prompt, prompt_overrides = prompt_parse(prompt, ["width", "height", "negative_prompt", "model"])
+    prompt_overrides['prompt'] = output_prompt
+
+    final_params = {**settings_output, **prompt_overrides}
+
+    for dim in ["width", "height"]:
+        if final_params[dim] not in [128, 256, 384, 448, 512, 576, 640, 704, 768]:
+            final_params[dim] = 512
+
+    if final_params['negative_prompt'] == "":
+        del final_params['negative_prompt']
+
+    print(prompt_overrides)
+    print(final_params)
     return {
-        "input": {
-            "prompt": prompt,
-            "width": width,
-            "height": height,
-            "negative_prompt": negative_prompt
-        }
+        "input": final_params
     }
 
 
@@ -169,7 +185,6 @@ async def wait_job(message: Message, job_id: int, user_model: int):
         await asyncio.sleep(5)
         code, response = get_job_status(job_id, user_model)
 
-        print(f"{code}: {response}")
         match code:
             case 0:
                 await message.edit(content=f"{message_beginning}\nHTTP request error!")
@@ -178,6 +193,7 @@ async def wait_job(message: Message, job_id: int, user_model: int):
                 output = response
                 await message.edit(content=f"{message_beginning.replace(job_ids, job_ids + ', ' + str(job_id))}"
                                            "\nImage has been generated, downloading...")
+                print(f"Job {job_id} completed for user {message.author} ({message.author.id})")
                 break
             case -1:
                 await message.edit(content=f"{message_beginning}\nError: {response}")
@@ -202,10 +218,17 @@ async def wait_job(message: Message, job_id: int, user_model: int):
 async def create_image(prompt: str, message: Message, author: User):
     user_model = get_setting_default(author.id, "model_id", 0)
     params = make_params(author.id, prompt)
+
     return create_image_params(params, user_model, message, author)
 
 
 async def create_image_params(params, model_id, message: Message, author: User):
+    if "model" in params['input'].keys():
+        new_model = get_model_from_alias(params['input']['model'])
+        if new_model is not None:
+            model_id = new_model
+        del params['input']['model']
+
     print(f"User {author} ({author.id}) is creating an image with model {models[model_id]['name']} and prompt "
           f"\"{params['input']['prompt']}\".")
 
@@ -227,6 +250,8 @@ async def make_image(prompt, current_model, message, author):
         cur = con.cursor()
 
         params = make_params(author.id, prompt)
+        prompt = params.get("prompt")
+
         job_id = make_job(params, current_model)
         output, message = await wait_job(message, job_id, current_model)
 
@@ -273,6 +298,8 @@ async def create(ctx: Context, *args):
     if not multi:
         user_model = get_setting_default(ctx.author.id, "model_id", 0)
         params = make_params(ctx.author.id, prompt)
+        prompt = params['input']['prompt']
+        message = await message.edit(content=f"Making a photo with prompt `{prompt}`... ")
         create_task = await asyncio.wait([asyncio.create_task(
             create_image_params(params, user_model, message, ctx.author)
         )])
