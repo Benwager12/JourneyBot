@@ -1,6 +1,7 @@
 import asyncio
 import json
 import os.path
+import sqlite3
 
 import discord
 import requests as requests
@@ -20,9 +21,6 @@ async def is_allowed_user(ctx: Context):
     return ctx.author.id in allowed_users.get() or ctx.author.id == config.get('OWNER_ID')
 
 
-
-
-
 def setup_wizard():
     if not os.path.isfile("allowed_users.txt"):
         print("Allowed users file does not exist, creating...")
@@ -37,23 +35,24 @@ def setup_wizard():
 
     if not os.path.isfile("config.json"):
         print("Config file does not exist, creating...")
+
         print("Please enter the token for your bot. You can get this from the Discord Developer Portal.")
         token = input("Token: ")
+        config.set("DISCORD_TOKEN", token)
+
         print("Please enter your Runpod API key. You can get this from https://www.runpod.io/console/user/settings")
         runpod_key = input("Runpod API key: ")
+        config.set("RUNPOD_KEY", runpod_key)
+
         print("Please enter your user id. This is so you can use the bot's commands as the owner.")
         owner_id = input("Owner ID: ")
+        config.set("OWNER_ID", int(owner_id))
+
         print("Please enter the name of the database file. This is where the bot will store user settings.")
         database_file = input("Database file: ")
+        config.set("DATABASE_FILE", database_file)
 
-        config_json = {
-            "DISCORD_TOKEN": token,
-            "RUNPOD_KEY": runpod_key,
-            "OWNER_ID": owner_id,
-            "DATABASE_FILE": database_file
-        }
-        with open("config.json", "w", encoding='utf-8') as f:
-            json.dump(config_json, f, ensure_ascii=False, indent='\t')
+        config.save()
     else:
         print("Config file already exists, skipping...")
 
@@ -70,8 +69,25 @@ def setup_wizard():
         os.mkdir("images")
     else:
         print("Images folder already exists, skipping...")
-    print("Setup wizard complete! Start the bot again to run it.")
-    exit()
+
+    if not os.path.isfile(config.get('DATABASE_FILE')):
+        with open(config.get('DATABASE_FILE'), 'wb') as f:
+            f.write(b'')
+
+    if not os.path.isfile(".schema"):
+        print("Model file does not exist, downloading...")
+        schema_file = requests.get("https://raw.githubusercontent.com/Benwager12/JourneyBot/master/.schema")
+        with open(".schema", "w", encoding='utf-8') as f:
+            f.write(schema_file.text)
+    else:
+        print("Model file already exists, skipping...")
+
+    print("Running schema to check if tables exist...")
+    with sqlite3.connect(config.get('DATABASE_FILE')) as con:
+        with open(".schema", "r") as f:
+            con.executescript(f.read())
+
+    print("Setup wizard complete!\n")
 
 
 async def load_extensions():
