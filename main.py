@@ -472,7 +472,7 @@ async def negative(ctx: Context, model_name: str = None, *args):
 
 
 @bot.command()
-async def view(ctx: Context, job_id: str = None):
+async def view(ctx: Context, job_id: str = None, *args):
     if job_id is None:
         await ctx.reply("Please provide a job id.")
         return
@@ -489,6 +489,10 @@ async def view(ctx: Context, job_id: str = None):
     job_prompt: str = job[2]
     if job_prompt.startswith("{"):
         job_prompt = json.loads(job_prompt)['input']['prompt']
+
+    if "params" in args:
+        await ctx.reply(f"Here is the parameters for job `{job_id}\n```json\n{job[2]}```")
+        return
 
     message = await ctx.reply(f"Now viewing prompt `{job_prompt}`, (Job ID: `{job_id}`).")
     await message.add_files(discord.File(f"images/{job_id}.png"))
@@ -591,7 +595,7 @@ async def on_message(message: Message):
         await bot.process_commands(message)
         return
 
-    if message.content.lower().startswith(("retry", "redo", "r")):
+    if message.content.lower().startswith(("retry ", "redo ", "r ")):
         # Redo the prompt that was given in the reference message
         previous_job_id = reference_message.content.split("`")[3].split(",")[0]
         job = lookup_job(previous_job_id)
@@ -616,6 +620,28 @@ async def on_message(message: Message):
         # Delete the message
         await reference_message.delete()
         return
+
+    if message.content.lower().startswith(("stylize ", "artify ", "rework ")):
+        previous_job_id = reference_message.content.split("`")[3].split(",")[0]
+        job = lookup_job(previous_job_id)
+        model_id = job[4]
+
+        new_prompt = " ".join(message.content.split(" ")[1::])
+        params = json.loads(job[2])
+
+        params['input']['init_image'] = reference_message.attachments[0].url
+        params['input']['prompt'] = new_prompt
+        params['input']['num_inference_steps'] = 10
+
+        stylize_message = await message.reply(f"Creating stylize of image with prompt `{new_prompt}`...")
+        create_task = await asyncio.wait([asyncio.create_task(
+            create_image_params(params, model_id, stylize_message, message.author)
+        )])
+        job_id = get_job_ids_from_task(create_task)[0]
+
+        await stylize_message.edit(content=f"Created stylize of image with prompt `{new_prompt}`... (Job ID: `{job_id}`")
+        await stylize_message.add_files(discord.File(f"images/{job_id}.png"))
+
 
     # If no other keywords were used, then just process the commands
     await bot.process_commands(message)
