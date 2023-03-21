@@ -1,25 +1,26 @@
 import json
+import os.path
 
 
 class File:
     def __init__(self, filename: str):
         self.filename = filename
-        self.file = open(filename)
 
     def fetch_file(self):
-        with open(self.filename) as file:
-            self.file = file
+        return open(self.filename) if os.path.isfile(self.filename) else None
 
     def __iter__(self):
         return FileIterator(self)
 
     def add_line(self, line: str):
-        self.file.write('\n'.join(self.file.readlines()) + f"\n{line}")
+        with open(self.filename) as file:
+            file.write('\n'.join(file.readlines()) + f"\n{line}")
 
 
 class FileIterator:
     def __init__(self, file: File):
-        self.lines = file.file.readlines()
+        with open(file.filename) as f:
+            self.lines = f.readlines()
         self.index = 0
 
     def __iter__(self):
@@ -36,11 +37,17 @@ class FileIterator:
 class JsonFile(File):
     def __init__(self, filename: str):
         super().__init__(filename)
-        self.data = json.load(self.file)
+        f = super().fetch_file()
+        self.data = json.loads(f.read() if f is not None else "{}")
+        if f:
+            f.close()
 
     def fetch_file(self):
         super().fetch_file()
-        self.data = json.load(self.file)
+        f = super().fetch_file()
+        self.data = json.load(f)
+        f.close()
+
 
     def get(self, key, default=None):
         if isinstance(self.data, list):
@@ -60,7 +67,8 @@ class JsonFile(File):
         self.data[key] = value
 
     def save(self):
-        json.dump(self.data, self.file, indent=4)
+        with open(self.filename, 'w') as file:
+            json.dump(self.data, file, indent=4)
 
     def __iter__(self):
         return JsonFileIterator(self)
