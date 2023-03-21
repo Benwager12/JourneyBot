@@ -1,12 +1,12 @@
-create table images (
-    job_id    varchar,
-    seed      int,
-    prompt    varchar,
-    author_id varchar,
-    model_id  integer
+CREATE TABLE IF NOT EXISTS images (
+    job_id          varchar,
+    seed            int,
+    parameters      varchar,
+    author_id       varchar,
+    model_id        integer
 );
 
-create table user_settings (
+CREATE TABLE IF NOT EXISTS user_settings (
     user_id         varchar,
     model_id        integer,
     width           integer,
