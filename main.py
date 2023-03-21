@@ -509,7 +509,9 @@ def get_job_ids_from_task(task):
     return ids
 
 
-def prompt_parse(prompt: str, argument_list: list = []):
+def prompt_parse(prompt: str, argument_list=None):
+    if argument_list is None:
+        argument_list = []
     tokens = []
     token_index = 0
     in_quotes = False
@@ -692,6 +694,23 @@ def setup_wizard():
     else:
         print("Images folder already exists, skipping...")
 
+    if not os.path.isfile(".schema"):
+        print("Schema file does not exist, downloading...")
+        schema_file = requests.get("https://raw.githubusercontent.com/Benwager12/JourneyBot/master/.schema")
+        with open(".schema", "wb", encoding='utf-8') as f:
+            f.write(schema_file.content)
+
+    if not os.path.isfile(config['DATABASE_FILE']):
+        with open(config['DATABASE_FILE'], "wb") as f:
+            f.write(bytes())
+
+
+def make_tables():
+    schema_file = open(".schema").read()
+    with sqlite3.connect(config['DATABASE_FILE']) as con:
+        cur = con.cursor()
+        cur.execute(schema_file)
+
 
 if __name__ == "__main__":
     run_setup_wizard = False
@@ -707,6 +726,7 @@ if __name__ == "__main__":
     if run_setup_wizard:
         print("Starting the setup wizard...")
         setup_wizard()
+        make_tables()
 
     bot.run(config["DISCORD_TOKEN"])
 
