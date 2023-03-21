@@ -222,6 +222,11 @@ async def create_image(prompt: str, message: Message, author: User):
     return create_image_params(params, user_model, message, author)
 
 
+async def add_reaction_emojis(message: Message):
+    await message.add_reaction("♻")
+    await message.add_reaction("❌")
+
+
 async def create_image_params(params, model_id, message: Message, author: User):
     if "model" in params['input'].keys():
         new_model = get_model_from_alias(params['input']['model'])
@@ -312,8 +317,7 @@ async def create(ctx: Context, *args):
     job_id_list = ", ".join([f"{job}" for job in job_ids])
     await message.edit(content=f"Making a photo with prompt `{prompt}`... (Jobs: `{job_id_list}`)",
                        attachments=file_list)
-    await message.add_reaction("♻")
-    await message.add_reaction("❌")
+    await add_reaction_emojis(message)
 
     if multi:
         await ctx.reply("Your multicreate has finished.")
@@ -424,7 +428,7 @@ async def negative(ctx: Context, model_name: str = None, *args):
         await ctx.send("Please provide a model name, here are the options:\n" + get_model_list())
         return
 
-    if model_name == "list":
+    if model_name.lower() == "view" or model_name.lower() == "list":
         negative_prompt_str = get_setting_default(ctx.author.id, "negative_prompt", "{}")
         negative_prompt = json.loads(negative_prompt_str)
         negative_prompt_list = []
@@ -491,7 +495,7 @@ async def view(ctx: Context, job_id: str = None, *args):
         job_prompt = json.loads(job_prompt)['input']['prompt']
 
     if "params" in args:
-        await ctx.reply(f"Here is the parameters for job `{job_id}\n```json\n{job[2]}```")
+        await ctx.reply(f"Here is the parameters for job `{job_id}`\n```json\n{job[2]}```")
         return
 
     message = await ctx.reply(f"Now viewing prompt `{job_prompt}`, (Job ID: `{job_id}`).")
@@ -555,7 +559,7 @@ def prompt_parse(prompt: str, argument_list=None):
 
     index = 0
     while index < len(tokens):
-        if tokens[index] == "--":
+        if tokens[index] == "--" and len(tokens) > index + 1:
             del tokens[index]
             tokens[index] = "--" + tokens[index]
         index += 1
@@ -594,11 +598,19 @@ async def on_message(message: Message):
     if reference_message.author != bot.user:
         await bot.process_commands(message)
         return
+    backtick_split = reference_message.content.split("`")
 
-    if message.content.lower().startswith(("retry ", "redo ", "r ")):
+    if message.content.lower().startswith(("retry", "redo")):
         # Redo the prompt that was given in the reference message
-        previous_job_id = reference_message.content.split("`")[3].split(",")[0]
+
+        if len(backtick_split) <= 3:
+            return
+        previous_job_id = backtick_split[3].split(",")[0]
         job = lookup_job(previous_job_id)
+
+        if job is None:
+            return
+
         model_id = job[4]
 
         # See if a model was specified
@@ -622,26 +634,71 @@ async def on_message(message: Message):
         return
 
     if message.content.lower().startswith(("stylize ", "artify ", "rework ")):
-        previous_job_id = reference_message.content.split("`")[3].split(",")[0]
+        if len(backtick_split) <= 3:
+            return
+
+        previous_job_id = backtick_split[3].split(",")[0]
         job = lookup_job(previous_job_id)
+
+        if job is None:
+            return
+
         model_id = job[4]
 
         new_prompt = " ".join(message.content.split(" ")[1::])
         params = json.loads(job[2])
+        params['input']['seed'] = job[1]
 
         params['input']['init_image'] = reference_message.attachments[0].url
-        params['input']['prompt'] = new_prompt
-        params['input']['num_inference_steps'] = 10
+        combined_prompt = f"{params['input']['prompt']}, {new_prompt}"
+
+        new_prompt, parsed_params = prompt_parse(combined_prompt, ["width", "height", "negative", "steps"])
+
+        if 'negative' in parsed_params:
+            parsed_params['negative_prompt'] = parsed_params['negative']
+            del parsed_params['negative']
+
+        if 'steps' in parsed_params and isinstance(parsed_params['steps'], int):
+            parsed_params['num_inference_steps'] = min(100, max(parsed_params['steps'], 20))
+            del parsed_params['steps']
+
+        parsed_params['prompt'] = new_prompt
+
+        final_params = {**params['input'], **parsed_params}
+        final_params = {
+            "input": final_params
+        }
 
         stylize_message = await message.reply(f"Creating stylize of image with prompt `{new_prompt}`...")
         create_task = await asyncio.wait([asyncio.create_task(
-            create_image_params(params, model_id, stylize_message, message.author)
+            create_image_params(final_params, model_id, stylize_message, message.author)
         )])
         job_id = get_job_ids_from_task(create_task)[0]
 
         await stylize_message.edit(content=f"Created stylize of image with prompt `{new_prompt}`... (Job ID: `{job_id}`")
         await stylize_message.add_files(discord.File(f"images/{job_id}.png"))
+        await add_reaction_emojis(stylize_message)
+        return
 
+    if message.content.lower() in ["params", "parameters"]:
+        if len(backtick_split) <= 3:
+            return
+
+        previous_job_ids = backtick_split[3].split(", ")
+
+        job_params = []
+        for job_id in previous_job_ids:
+            job = lookup_job(job_id)
+            if job is None:
+                continue
+            job_params.append(f"```json\n{job[2]}```")
+
+        if len(job_params) == 0:
+            return
+
+        await message.reply(f"Here is the parameters for job{'' if len(job_params) == 1 else 's'} "
+                            f"`{', '.join(previous_job_ids)}`:\n{''.join(job_params)}")
+        return
 
     # If no other keywords were used, then just process the commands
     await bot.process_commands(message)
