@@ -166,8 +166,6 @@ def make_params(user_id, prompt) -> dict:
     if final_params['negative_prompt'] == "":
         del final_params['negative_prompt']
 
-    print(prompt_overrides)
-    print(final_params)
     return {
         "input": final_params
     }
@@ -181,6 +179,8 @@ async def wait_job(message: Message, job_id: int, user_model: int):
     else:
         job_ids = message_beginning.split("`")[3]
 
+    reference_message = await message.channel.fetch_message(message.reference.message_id)
+
     while output is None:
         await asyncio.sleep(5)
         code, response = get_job_status(job_id, user_model)
@@ -193,7 +193,7 @@ async def wait_job(message: Message, job_id: int, user_model: int):
                 output = response
                 await message.edit(content=f"{message_beginning.replace(job_ids, job_ids + ', ' + str(job_id))}"
                                            "\nImage has been generated, downloading...")
-                print(f"Job {job_id} completed for user {message.author} ({message.author.id})")
+                print(f"Job {job_id} completed for user {reference_message.author} ({reference_message.id})")
                 break
             case -1:
                 await message.edit(content=f"{message_beginning}\nError: {response}")
