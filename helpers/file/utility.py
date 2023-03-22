@@ -31,6 +31,8 @@ class FileIterator:
             raise StopIteration
         else:
             self.index += 1
+            if self.lines[self.index - 1].endswith('\n'):
+                return self.lines[self.index - 1][:-1]
             return self.lines[self.index - 1]
 
 

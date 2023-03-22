@@ -1,3 +1,5 @@
+from discord import Message
+
 
 def parse(prompt: str, argument_list=None):
     if argument_list is None:
@@ -56,3 +58,8 @@ def parse(prompt: str, argument_list=None):
             parameters[key] = int(value)
 
     return " ".join(tokens), parameters
+
+
+async def add_reaction_emojis(message: Message):
+    await message.add_reaction("♻")
+    await message.add_reaction("❌")

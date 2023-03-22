@@ -3,6 +3,7 @@ import json
 from helpers.database import user_settings
 from helpers.jobs import prompt
 
+
 def make_params(user_id, use_prompt) -> dict:
     width = user_settings.get(user_id, "width")
     if width is None:
@@ -27,7 +28,11 @@ def make_params(user_id, use_prompt) -> dict:
         "negative_prompt": negative_prompt
     }
 
-    output_prompt, prompt_overrides = prompt.parse(use_prompt, ["width", "height", "negative_prompt", "model"])
+    output_prompt, prompt_overrides = prompt.parse(use_prompt, ["width", "height", "negative", "model"])
+    if 'negative' in prompt_overrides:
+        prompt_overrides['negative_prompt'] = prompt_overrides['negative']
+        del prompt_overrides['negative']
+
     prompt_overrides['prompt'] = output_prompt
 
     final_params = {**settings_output, **prompt_overrides}

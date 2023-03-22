@@ -18,7 +18,7 @@ bot = commands.Bot(command_prefix='*', intents=intents)
 
 @bot.check
 async def is_allowed_user(ctx: Context):
-    return ctx.author.id in allowed_users.get() or ctx.author.id == config.get('OWNER_ID')
+    return str(ctx.author.id) in allowed_users.get() or ctx.author.id == int(config.get('OWNER_ID'))
 
 
 def setup_wizard():

@@ -5,6 +5,7 @@ from discord.ext import commands
 
 from helpers.database import user_settings
 from helpers.jobs import runpod, parameters
+from helpers.jobs.prompt import add_reaction_emojis
 
 
 class Prompt(commands.Cog):
@@ -33,6 +34,7 @@ class Prompt(commands.Cog):
 
         params = parameters.make_params(ctx.author.id, prompt)
         prompt = params['input']['prompt']
+
         message = await message.edit(content=f"Making a photo with prompt `{prompt}`... ")
         create_task = await asyncio.wait([asyncio.create_task(
             runpod.create_image(params, user_model, message, ctx.author)
@@ -44,8 +46,7 @@ class Prompt(commands.Cog):
         job_id_list = ", ".join([f"{job}" for job in job_ids])
         await message.edit(content=f"Making a photo with prompt `{prompt}`... (Jobs: `{job_id_list}`)",
                            attachments=file_list)
-        await message.add_reaction("♻")
-        await message.add_reaction("❌")
+        await add_reaction_emojis()
 
 
 async def setup(bot):

@@ -5,13 +5,10 @@ import discord
 from discord import Message
 from discord.ext import commands
 
+from helpers.database import images
 from helpers.file import models
 from helpers.jobs import runpod, prompt
-
-
-async def add_reaction_emojis(message: Message):
-    await message.add_reaction("♻")
-    await message.add_reaction("❌")
+from helpers.jobs.prompt import add_reaction_emojis
 
 
 class OnMessage(commands.Cog):
@@ -30,7 +27,6 @@ class OnMessage(commands.Cog):
         reference_message = await channel.fetch_message(message.reference.message_id)
 
         if reference_message.author != self.bot.user:
-            await self.bot.process_commands(message)
             return
         backtick_split = reference_message.content.split("`")
 
@@ -39,8 +35,8 @@ class OnMessage(commands.Cog):
 
             if len(backtick_split) <= 3:
                 return
-            previous_job_id = backtick_split[3].split(",")[0]
-            job = runpod.lookup_job(previous_job_id)
+            previous_job_id = backtick_split[3].split(", ")[0]
+            job = images.lookup_job(previous_job_id)
 
             if job is None:
                 return
@@ -68,11 +64,12 @@ class OnMessage(commands.Cog):
             return
 
         if message.content.lower().startswith(("stylize ", "artify ", "rework ")):
+            print("test")
             if len(backtick_split) <= 3:
                 return
 
-            previous_job_id = backtick_split[3].split(",")[0]
-            job = runpod.lookup_job(previous_job_id)
+            previous_job_id = backtick_split[3].split(", ")[0]
+            job = images.lookup_job(previous_job_id)
 
             if job is None:
                 return
@@ -86,7 +83,7 @@ class OnMessage(commands.Cog):
             params['input']['init_image'] = reference_message.attachments[0].url
             combined_prompt = f"{params['input']['prompt']}, {new_prompt}"
 
-            new_prompt, parsed_params = prompt.parse(combined_prompt, ["width", "height", "negative", "steps"])
+            new_prompt, parsed_params = prompt.parse(combined_prompt, ["width", "height", "negative", "steps", "model"])
 
             if 'negative' in parsed_params:
                 parsed_params['negative_prompt'] = parsed_params['negative']
@@ -95,6 +92,12 @@ class OnMessage(commands.Cog):
             if 'steps' in parsed_params and isinstance(parsed_params['steps'], int):
                 parsed_params['num_inference_steps'] = min(100, max(parsed_params['steps'], 20))
                 del parsed_params['steps']
+
+            if 'model' in parsed_params:
+                new_model = models.get_model_from_alias(parsed_params['model'])
+                if new_model is not None:
+                    model_id = new_model
+                del parsed_params['model']
 
             parsed_params['prompt'] = new_prompt
 
