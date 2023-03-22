@@ -11,7 +11,11 @@ class Gallery(commands.Cog):
     @dm_only()
     @commands.command(name="gallery", aliases=["g", "viewall"])
     async def _gallery(self, ctx, page_number: int = 1):
-        reply, embed = images.get_gallery_embed(ctx.author.id, page_number, 5)
+        page_amount = images.get_page_amount(ctx.author.id)
+
+        page_number = max(1, min(page_number, page_amount))
+
+        reply, embed = images.get_gallery_embed(ctx.author.id, page_number)
         await ctx.send(reply, embed=embed)
 
 

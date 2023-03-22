@@ -1,5 +1,6 @@
 import json
 import sqlite3
+import time
 
 import discord
 
@@ -23,11 +24,12 @@ def lookup_job(job_id: str):
 
 def insert_image(job_id, seed, params, author_id):
     model_id = user_settings.get_default(author_id, 'model_id', 0)
-    insertion_sql = f"INSERT INTO images (job_id, seed, parameters, author_id, model_id) VALUES (?, ?, ?, ?, ?)"
+    insertion_sql = f"INSERT INTO images (job_id, seed, parameters, author_id, model_id, insertion_time) " \
+                    f"VALUES (?, ?, ?, ?, ?, ?)"
 
     with sqlite3.connect(config.get('DATABASE_FILE', 'database.sqlite3')) as con:
         cur = con.cursor()
-        cur.execute(insertion_sql, [job_id, seed, json.dumps(params), author_id, model_id])
+        cur.execute(insertion_sql, [job_id, seed, json.dumps(params), author_id, model_id, time.time()])
     con.commit()
 
 
@@ -119,7 +121,7 @@ def get_gallery_embed(author_id: int, page_number: int = 1, page_size: int = 5) 
 
 
 def get_latest_job_id(author_id: int):
-    latest_job_sql = "SELECT job_id FROM images WHERE author_id = ? ORDER BY id DESC LIMIT 1"
+    latest_job_sql = "SELECT job_id FROM images WHERE author_id = ? ORDER BY insertion_time DESC LIMIT 1"
 
     with sqlite3.connect(config.get('DATABASE_FILE', 'database.sqlite3')) as con:
         cur = con.cursor()

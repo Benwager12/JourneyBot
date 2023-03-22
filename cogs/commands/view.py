@@ -25,6 +25,12 @@ class View(commands.Cog):
             await ctx.send(reply, embed=embed)
             return
 
+        if job_id.lower() in ['latest', 'last']:
+            job_id = images.get_latest_job_id(ctx.author.id)
+            if job_id is None:
+                await ctx.reply("You have no jobs.")
+                return
+
         job = images.lookup_job(job_id)
 
         if job is None:

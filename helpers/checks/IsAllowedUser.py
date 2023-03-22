@@ -1,13 +1,12 @@
-from typing import Optional, Any
+from typing import Optional
 
 from discord.ext import commands
 from discord.ext.commands import Context, CheckFailure
-from discord.ext.commands._types import Check
 
 from helpers.file import config, allowed_users
 
 
-def is_allowed() -> Check[Any]:
+def is_allowed():
     def predicate(ctx: Context):
         return str(ctx.author.id) in allowed_users.get() or ctx.author.id == int(config.get('OWNER_ID'))
     return commands.check(predicate)
