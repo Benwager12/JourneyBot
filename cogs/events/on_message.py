@@ -9,6 +9,7 @@ from helpers.database import images
 from helpers.file import models
 from helpers.jobs import runpod, prompt
 from helpers.jobs.prompt import add_reaction_emojis_image
+from helpers.views.image_view import ImageView
 
 
 class OnMessage(commands.Cog):
@@ -112,10 +113,10 @@ class OnMessage(commands.Cog):
             job_id = runpod.get_job_ids_from_task(create_task)[0]
 
             await stylize_message.edit(
-                content=f"Created stylize of image with prompt `{new_prompt}`... (Job ID: `{job_id}`")
-            await stylize_message.add_files(discord.File(f"images/{job_id}.png"))
-            await add_reaction_emojis_image(stylize_message)
-            return
+                content=f"Created stylize of image with prompt `{new_prompt}`... (Job ID: `{job_id}`)",
+                view=ImageView(),
+                attachments=[discord.File(f"images/{job_id}.png")]
+            )
 
 
 async def setup(bot):
