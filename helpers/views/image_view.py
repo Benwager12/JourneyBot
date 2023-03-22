@@ -4,6 +4,7 @@ import json
 import discord
 from discord import Interaction
 
+from helpers.checks.IsAllowedUser import is_allowed_user
 from helpers.database import images
 from helpers.jobs import runpod
 
@@ -11,6 +12,12 @@ from helpers.jobs import runpod
 class ImageView(discord.ui.View):
     @discord.ui.button(label="♻", style=discord.ButtonStyle.green)
     async def redo(self, interaction: Interaction, button: discord.ui.Button):
+        if not is_allowed_user(interaction.user.id):
+            await interaction.response.send_message(
+                content="You are not allowed to use this button.",
+                ephemeral=True
+            )
+            return
         previous_job_id = interaction.message.content.split("`")[3].split(",")[0]
         job = images.lookup_job(previous_job_id)
         model_id = job[4]

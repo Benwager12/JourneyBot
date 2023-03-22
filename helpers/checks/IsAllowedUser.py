@@ -1,15 +1,26 @@
 from typing import Optional
 
+from discord.ext import commands
 from discord.ext.commands import CheckFailure, Context
 
-from helpers.file import allowed_users, config
+from helpers.checks.IsOwnerId import is_owner_user
+from helpers.file import allowed_users
+
+
+def is_allowed_user(user_id):
+    return user_id in allowed_users.get() or is_owner_user(user_id)
 
 
 def is_allowed(ctx: Context):
-    output = ctx.author.id in allowed_users.get() or ctx.author.id == int(config.get('OWNER_ID'))
-    if not output:
+    if not is_allowed_user(ctx.author.id):
         raise AllowedUsersOnly()
-    return output
+    return True
+
+
+def allowed_check():
+    def predicate(ctx):
+        return is_allowed(ctx)
+    return commands.check(predicate)
 
 
 class AllowedUsersOnly(CheckFailure):
