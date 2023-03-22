@@ -13,8 +13,8 @@ class File:
         return FileIterator(self)
 
     def add_line(self, line: str):
-        with open(self.filename) as file:
-            file.write('\n'.join(file.readlines()) + f"\n{line}")
+        with open(self.filename, "a") as file:
+            file.write("\n" + line)
 
 
 class FileIterator:
