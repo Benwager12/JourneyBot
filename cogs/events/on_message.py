@@ -5,10 +5,10 @@ import discord
 from discord import Message
 from discord.ext import commands
 
+from helpers.checks.IsOwnerId import is_owner_user
 from helpers.database import images
 from helpers.file import models
 from helpers.jobs import runpod, prompt
-from helpers.jobs.prompt import add_reaction_emojis_image
 from helpers.views.image_view import ImageView
 
 
@@ -117,6 +117,14 @@ class OnMessage(commands.Cog):
                 view=ImageView(),
                 attachments=[discord.File(f"images/{job_id}.png")]
             )
+
+        if message.content.lower().startswith(("switchview ", "sv ")) and is_owner_user(message.author.id):
+            view_name = message.content.split(" ")[1]
+
+            if view_name.lower() in ["image", "images", "img", "imgs"]:
+                await reference_message.edit(view=ImageView())
+            if view_name == "none":
+                await reference_message.edit(view=None)
 
 
 async def setup(bot):

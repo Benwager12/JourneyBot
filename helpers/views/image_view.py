@@ -10,7 +10,7 @@ from helpers.jobs import runpod
 
 
 class ImageView(discord.ui.View):
-    @discord.ui.button(label="♻", style=discord.ButtonStyle.green)
+    @discord.ui.button(label="Retry", style=discord.ButtonStyle.green)
     async def redo(self, interaction: Interaction, button: discord.ui.Button):
         if not is_allowed_user(interaction.user.id):
             await interaction.response.send_message(
@@ -38,7 +38,7 @@ class ImageView(discord.ui.View):
         message = await interaction.original_response()
         await message.edit(content="Finished redoing the image, new job id is `{job_id}`.")
 
-    @discord.ui.button(label="❌", style=discord.ButtonStyle.red)
+    @discord.ui.button(label="Delete", style=discord.ButtonStyle.red)
     async def delete(self, interaction: Interaction, button: discord.ui.Button):
         previous_job_id = interaction.message.content.split("`")[3].split(",")[0]
 
@@ -48,7 +48,7 @@ class ImageView(discord.ui.View):
             ephemeral=True
         )
 
-    @discord.ui.button(label="🅿", style=discord.ButtonStyle.primary)
+    @discord.ui.button(label="Parameters", style=discord.ButtonStyle.primary)
     async def view_params(self, interaction: Interaction, button: discord.ui.Button):
         previous_job_ids = interaction.message.content.split("`")[3].split(", ")
         param_str = []
