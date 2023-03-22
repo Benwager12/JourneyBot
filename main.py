@@ -5,6 +5,7 @@ import sqlite3
 
 import discord
 import requests as requests
+from discord import utils
 from discord.ext import commands
 
 from helpers.checks.IsAllowedUser import is_allowed
@@ -15,7 +16,8 @@ intents.message_content = True
 
 bot = commands.Bot(command_prefix='*', intents=intents)
 
-bot.add_check(is_allowed())
+bot.add_check(is_allowed)
+
 
 def setup_wizard():
     if not os.path.isfile("allowed_users.txt"):
@@ -112,6 +114,7 @@ async def main():
         setup_wizard()
 
     await load_extensions()
+    utils.setup_logging()
     print()
     await bot.start(config.get("DISCORD_TOKEN"))
 

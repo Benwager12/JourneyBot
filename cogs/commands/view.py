@@ -5,6 +5,7 @@ from discord.ext import commands
 from discord.ext.commands import Context, is_owner, dm_only
 
 from helpers.database import images
+from helpers.views.image_view import ImageView
 
 
 class View(commands.Cog):
@@ -46,7 +47,12 @@ class View(commands.Cog):
             job_prompt = json.loads(job_prompt)['input']['prompt']
 
         message = await ctx.reply(f"Now viewing prompt `{job_prompt}`, (Job ID: `{job_id}`).")
-        await message.add_files(discord.File(f"images/{job_id}.png"))
+        await message.add_files()
+        await message.edit(
+            content=message.content,
+            attachments=[discord.File(f"images/{job_id}.png")],
+            view=ImageView()
+        )
 
 
 async def setup(bot):

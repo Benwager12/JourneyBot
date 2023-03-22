@@ -2,6 +2,8 @@ from discord.ext import commands
 from discord.ext.commands import Context, CommandError, PrivateMessageOnly
 import traceback
 
+from helpers.checks.IsAllowedUser import AllowedUsersOnly
+
 
 class OnCommandError(commands.Cog):
     def __init__(self, bot):
@@ -13,15 +15,16 @@ class OnCommandError(commands.Cog):
             return
 
         if isinstance(error, commands.CheckFailure):
-            print()
             if isinstance(error, PrivateMessageOnly):
                 await ctx.reply(str(error))
+                return
+            if isinstance(error, AllowedUsersOnly):
+                await ctx.reply(str(error))
+                return
             print(f"User {ctx.author} ({ctx.author.id}) tried to use command {ctx.command}")
-            return
 
         print(f"Command {ctx.command} failed with error {error.__class__.__name__} for reason \"{error.__cause__}\".")
         traceback.print_exception(error)
-        print(error)
 
 
 async def setup(bot):

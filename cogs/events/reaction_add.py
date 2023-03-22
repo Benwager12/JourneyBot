@@ -28,9 +28,14 @@ class OnReactionAdd(commands.Cog):
         else:
             return
 
+        backtick_split = reaction.message.content.split("`")
+
         if reaction.emoji in ["🔁", "🔄", "🔂", "🔀", "♻"]:
+            if len(backtick_split) <= 3:
+                return
+
             # Redo the prompt that was given in the reference message
-            previous_job_id = reaction.message.content.split("`")[3].split(",")[0]
+            previous_job_id = backtick_split[3].split(",")[0]
             job = images.lookup_job(previous_job_id)
             model_id = job[4]
             params = json.loads(job[2])
@@ -45,9 +50,18 @@ class OnReactionAdd(commands.Cog):
             # Delete the message
             await reaction.message.delete()
 
-        if reaction.emoji == "⏮":
-            # Go to the previous page
-            await reaction.message.edit(content=reaction.message.content.split("`")[0] + "`" + reaction.message.content.split("`")[2])
+        if reaction.emoji == "🅿":  # View parameters of prompt
+            if len(backtick_split) <= 3:
+                return
+            previous_job_ids = backtick_split[3].split(", ")
+            param_str = []
+            for job_id in previous_job_ids:
+                job = images.lookup_job(job_id)
+                if job is None:
+                    continue
+                params = json.loads(job[2])
+                param_str.append(f"`{job_id} - seed {job[1]}`:\n```json\n{params}```")
+            await reaction.message.channel.send(f"{user.mention}, here are the parameters:\n\n" + "\n".join(param_str))
 
 
 async def setup(bot):

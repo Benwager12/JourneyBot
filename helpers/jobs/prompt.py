@@ -66,7 +66,7 @@ async def add_reaction_emojis(message: Message, emojis: list):
 
 
 async def add_reaction_emojis_image(message: Message):
-    await add_reaction_emojis(message, ["♻", "❌"])
+    await add_reaction_emojis(message, ["♻", "❌", "🅿"])
 
 
 async def add_reaction_emojis_page(message: Message):
