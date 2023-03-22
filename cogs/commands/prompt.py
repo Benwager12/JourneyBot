@@ -46,7 +46,7 @@ class Prompt(commands.Cog):
         job_id_list = ", ".join([f"{job}" for job in job_ids])
         await message.edit(content=f"Making a photo with prompt `{prompt}`... (Jobs: `{job_id_list}`)",
                            attachments=file_list)
-        await add_reaction_emojis()
+        await add_reaction_emojis(message)
 
 
 async def setup(bot):
