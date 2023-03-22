@@ -60,6 +60,14 @@ def parse(prompt: str, argument_list=None):
     return " ".join(tokens), parameters
 
 
-async def add_reaction_emojis(message: Message):
-    await message.add_reaction("♻")
-    await message.add_reaction("❌")
+async def add_reaction_emojis(message: Message, emojis: list):
+    for emoji in emojis:
+        await message.add_reaction(emoji)
+
+
+async def add_reaction_emojis_image(message: Message):
+    await add_reaction_emojis(message, ["♻", "❌"])
+
+
+async def add_reaction_emojis_page(message: Message):
+    await add_reaction_emojis(message, ["⏮", "⏭"])

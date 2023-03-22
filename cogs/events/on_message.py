@@ -8,7 +8,7 @@ from discord.ext import commands
 from helpers.database import images
 from helpers.file import models
 from helpers.jobs import runpod, prompt
-from helpers.jobs.prompt import add_reaction_emojis
+from helpers.jobs.prompt import add_reaction_emojis_image
 
 
 class OnMessage(commands.Cog):
@@ -64,7 +64,6 @@ class OnMessage(commands.Cog):
             return
 
         if message.content.lower().startswith(("stylize ", "artify ", "rework ")):
-            print("test")
             if len(backtick_split) <= 3:
                 return
 
@@ -115,7 +114,7 @@ class OnMessage(commands.Cog):
             await stylize_message.edit(
                 content=f"Created stylize of image with prompt `{new_prompt}`... (Job ID: `{job_id}`")
             await stylize_message.add_files(discord.File(f"images/{job_id}.png"))
-            await add_reaction_emojis(stylize_message)
+            await add_reaction_emojis_image(stylize_message)
             return
 
 

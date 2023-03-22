@@ -6,20 +6,16 @@ import sqlite3
 import discord
 import requests as requests
 from discord.ext import commands
-from discord.ext.commands import Context
 
-from helpers.file import config, allowed_users
+from helpers.checks.IsAllowedUser import is_allowed
+from helpers.file import config
 
 intents = discord.Intents.default()
 intents.message_content = True
 
 bot = commands.Bot(command_prefix='*', intents=intents)
 
-
-@bot.check
-async def is_allowed_user(ctx: Context):
-    return str(ctx.author.id) in allowed_users.get() or ctx.author.id == int(config.get('OWNER_ID'))
-
+bot.add_check(is_allowed())
 
 def setup_wizard():
     if not os.path.isfile("allowed_users.txt"):

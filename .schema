@@ -1,9 +1,10 @@
 CREATE TABLE IF NOT EXISTS images (
-    job_id          varchar,
-    seed            int,
-    parameters      varchar,
-    author_id       varchar,
-    model_id        integer
+    job_id         varchar,
+    seed           int,
+    parameters     varchar,
+    author_id      varchar,
+    model_id       integer,
+    insertion_time integer
 );
 
 CREATE TABLE IF NOT EXISTS user_settings (

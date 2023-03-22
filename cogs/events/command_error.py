@@ -1,5 +1,5 @@
 from discord.ext import commands
-from discord.ext.commands import Context, CommandError
+from discord.ext.commands import Context, CommandError, PrivateMessageOnly
 import traceback
 
 
@@ -13,6 +13,9 @@ class OnCommandError(commands.Cog):
             return
 
         if isinstance(error, commands.CheckFailure):
+            print()
+            if isinstance(error, PrivateMessageOnly):
+                await ctx.reply(str(error))
             print(f"User {ctx.author} ({ctx.author.id}) tried to use command {ctx.command}")
             return
 

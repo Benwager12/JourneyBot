@@ -5,7 +5,7 @@ from discord.ext import commands
 
 from helpers.database import user_settings
 from helpers.jobs import runpod, parameters
-from helpers.jobs.prompt import add_reaction_emojis
+from helpers.jobs.prompt import add_reaction_emojis_image
 
 
 class Prompt(commands.Cog):
@@ -46,7 +46,7 @@ class Prompt(commands.Cog):
         job_id_list = ", ".join([f"{job}" for job in job_ids])
         await message.edit(content=f"Making a photo with prompt `{prompt}`... (Jobs: `{job_id_list}`)",
                            attachments=file_list)
-        await add_reaction_emojis(message)
+        await add_reaction_emojis_image(message)
 
 
 async def setup(bot):

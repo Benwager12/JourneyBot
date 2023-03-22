@@ -2,7 +2,7 @@ import json
 
 import discord
 from discord.ext import commands
-from discord.ext.commands import Context, is_owner
+from discord.ext.commands import Context, is_owner, dm_only
 
 from helpers.database import images
 
@@ -15,6 +15,14 @@ class View(commands.Cog):
     async def view(self, ctx: Context, job_id: str = None):
         if job_id is None:
             await ctx.reply("Please provide a job id.")
+            return
+
+        if job_id.lower() == "all":
+            if dm_only():
+                await ctx.reply("This command can only be used in private messages.")
+                return
+            reply, embed = images.get_gallery_embed(ctx.author.id)
+            await ctx.send(reply, embed=embed)
             return
 
         job = images.lookup_job(job_id)

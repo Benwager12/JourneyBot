@@ -21,6 +21,13 @@ class OnReactionAdd(commands.Cog):
         if reaction.message.author != self.bot.user:
             return
 
+        # Check if the reaction has also been added by the bot
+        for r in reaction.message.reactions:
+            if reaction.me and r.emoji == reaction.emoji:
+                break
+        else:
+            return
+
         if reaction.emoji in ["🔁", "🔄", "🔂", "🔀", "♻"]:
             # Redo the prompt that was given in the reference message
             previous_job_id = reaction.message.content.split("`")[3].split(",")[0]
@@ -37,6 +44,10 @@ class OnReactionAdd(commands.Cog):
         if reaction.emoji in ["❌", "🚫", "🛑", "❎"]:
             # Delete the message
             await reaction.message.delete()
+
+        if reaction.emoji == "⏮":
+            # Go to the previous page
+            await reaction.message.edit(content=reaction.message.content.split("`")[0] + "`" + reaction.message.content.split("`")[2])
 
 
 async def setup(bot):
