@@ -1,6 +1,6 @@
 import discord
 from discord.ext import commands
-from discord.ext.commands import Context, dm_only
+from discord.ext.commands import Context
 
 from helpers.checks.IsOwnerId import owner_check
 from helpers.file import config
@@ -16,13 +16,13 @@ class Config(commands.Cog):
             return
         await ctx.reply("No subcommand specified. Try using `get` and `set`.")
 
-    @_config.group(name="set")
+    @_config.group(name="set", aliases=["change", "update", "edit", "modify"])
     async def _set(self, ctx: Context):
         if ctx.invoked_subcommand is not None:
             return
         await ctx.reply("No subcommand specified. Try using `owner`.")
 
-    @_config.group(name="get")
+    @_config.group(name="get", aliases=["show", "display", "view", "print"])
     async def _get(self, ctx: Context):
         if ctx.invoked_subcommand is not None:
             return
@@ -38,7 +38,7 @@ class Config(commands.Cog):
 
     @_get.command(name="discord")
     @owner_check()
-    async def _runpod_get(self, ctx: Context):
+    async def _discord_get(self, ctx: Context):
         disc_token = config.get('DISCORD_TOKEN')
         if not ctx.channel.type == discord.ChannelType.private:
             disc_token = "*" * len(disc_token)
