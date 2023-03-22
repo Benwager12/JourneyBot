@@ -19,7 +19,7 @@ class View(commands.Cog):
             return
 
         if job_id.lower() == "all":
-            if dm_only():
+            if ctx.channel.type != discord.ChannelType.private:
                 await ctx.reply("This command can only be used in private messages.")
                 return
             reply, embed = images.get_gallery_embed(ctx.author.id)
@@ -36,10 +36,6 @@ class View(commands.Cog):
 
         if job is None:
             await ctx.reply("That job id does not exist.")
-            return
-
-        if not (is_owner() or int(job[3]) == ctx.author.id):
-            await ctx.reply("You cannot view something that is not your job.")
             return
 
         job_prompt: str = job[2]

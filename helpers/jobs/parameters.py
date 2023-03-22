@@ -28,10 +28,15 @@ def make_params(user_id, use_prompt) -> dict:
         "negative_prompt": negative_prompt
     }
 
-    output_prompt, prompt_overrides = prompt.parse(use_prompt, ["width", "height", "negative", "model"])
+    output_prompt, prompt_overrides = prompt.parse(use_prompt, ["width", "height", "negative", "model", "steps"])
+
     if 'negative' in prompt_overrides:
         prompt_overrides['negative_prompt'] = prompt_overrides['negative']
         del prompt_overrides['negative']
+
+    if 'steps' in prompt_overrides and isinstance(prompt_overrides['steps'], int):
+        prompt_overrides['num_inference_steps'] = min(100, max(prompt_overrides['steps'], 20))
+        del prompt_overrides['steps']
 
     prompt_overrides['prompt'] = output_prompt
 

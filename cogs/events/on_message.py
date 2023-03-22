@@ -10,6 +10,7 @@ from helpers.database import images
 from helpers.file import models
 from helpers.jobs import runpod, prompt
 from helpers.views.image_view import ImageView
+from helpers.views.page_view import GalleryPageView
 
 
 class OnMessage(commands.Cog):
@@ -81,9 +82,9 @@ class OnMessage(commands.Cog):
             params['input']['seed'] = job[1]
 
             params['input']['init_image'] = reference_message.attachments[0].url
-            combined_prompt = f"{params['input']['prompt']}, {new_prompt}"
 
-            new_prompt, parsed_params = prompt.parse(combined_prompt, ["width", "height", "negative", "steps", "model"])
+            new_prompt, parsed_params = prompt.parse(new_prompt, ["negative", "steps", "model"])
+
 
             if 'negative' in parsed_params:
                 parsed_params['negative_prompt'] = parsed_params['negative']
@@ -99,21 +100,38 @@ class OnMessage(commands.Cog):
                     model_id = new_model
                 del parsed_params['model']
 
-            parsed_params['prompt'] = new_prompt
+            if new_prompt.strip() != "":
+                final_prompt = f"{params['input']['prompt']}, {new_prompt}"
+            else:
+                final_prompt = params['input']['prompt']
+
+            replacements = prompt.parse_replace(final_prompt)
+
+            for replacement in replacements:
+                final_prompt = final_prompt.replace(replacement, replacements[replacement])
+
+            for replaced in replacements:
+                replacement = replacements[replaced]
+                final_prompt = final_prompt.replace(f"[{replacement}={replacement}]", "")
+                print(final_prompt)
+
+            while final_prompt.endswith((", ", ",")):
+                final_prompt = final_prompt[:-2]
+            parsed_params['prompt'] = final_prompt
 
             final_params = {**params['input'], **parsed_params}
             final_params = {
                 "input": final_params
             }
 
-            stylize_message = await message.reply(f"Creating stylize of image with prompt `{new_prompt}`...")
+            stylize_message = await message.reply(f"Creating stylize of image with prompt `{final_prompt}`...")
             create_task = await asyncio.wait([asyncio.create_task(
                 runpod.create_image(final_params, model_id, stylize_message, message.author)
             )])
             job_id = runpod.get_job_ids_from_task(create_task)[0]
 
             await stylize_message.edit(
-                content=f"Created stylize of image with prompt `{new_prompt}`... (Job ID: `{job_id}`)",
+                content=f"Created stylize of image with prompt `{final_prompt}`... (Job ID: `{job_id}`)",
                 view=ImageView(),
                 attachments=[discord.File(f"images/{job_id}.png")]
             )
@@ -125,6 +143,12 @@ class OnMessage(commands.Cog):
                 await reference_message.edit(view=ImageView())
             if view_name == "none":
                 await reference_message.edit(view=None)
+
+        if message.content.lower() in ["view", "v"]:
+            if len(reference_message.content.split("`")) >= 4:
+                await reference_message.edit(view=ImageView())
+            else:
+                await reference_message.edit(view=GalleryPageView())
 
 
 async def setup(bot):

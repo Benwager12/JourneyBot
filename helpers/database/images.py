@@ -22,8 +22,7 @@ def lookup_job(job_id: str):
         return job
 
 
-def insert_image(job_id, seed, params, author_id):
-    model_id = user_settings.get_default(author_id, 'model_id', 0)
+def insert_image(job_id, seed, params, author_id, model_id):
     insertion_sql = f"INSERT INTO images (job_id, seed, parameters, author_id, model_id, insertion_time) " \
                     f"VALUES (?, ?, ?, ?, ?, ?)"
 

@@ -13,12 +13,14 @@ headers = {
     "Authorization": f"Bearer {config.get('RUNPOD_KEY', 'NO_KEY')}"
 }
 
+
 def make_job(params, user_model) -> int:
     run_url = f"{BASE_URL}/{models.get(user_model)['endpoint_id']}/run"
     response = requests.post(run_url, headers=headers, json=params)
     response_json = response.json()
 
     return response_json['id']
+
 
 def get_job_status(job_id, user_model) -> (int, str):
     status_url = f"{BASE_URL}/{models.get(user_model)['endpoint_id']}/status/{job_id}"
@@ -89,6 +91,7 @@ async def wait_job(message: Message, job_id: int, user_model: int):
 
     return output, message
 
+
 async def create_image(params, model_id, message: Message, author: User):
     if "model" in params['input'].keys():
         new_model = models.get_model_from_alias(params['input']['model'])
@@ -103,7 +106,7 @@ async def create_image(params, model_id, message: Message, author: User):
     output, message = await wait_job(message, job_id, model_id)
 
     for image in output:
-        images.insert_image(job_id, image['seed'], params, author.id)
+        images.insert_image(job_id, image['seed'], params, author.id, model_id)
     return job_id
 
 

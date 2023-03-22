@@ -22,7 +22,7 @@ def parse(prompt: str, argument_list=None):
             in_quotes = not in_quotes
             continue
 
-        if tokens[token_index] == "--":
+        if tokens[token_index] == "--" or tokens[token_index] == "—":
             parameter_locations.append(token_index)
             token_index += 1
 
@@ -44,9 +44,11 @@ def parse(prompt: str, argument_list=None):
 
     index = 0
     while index < len(tokens):
-        if tokens[index] == "--":
-            del tokens[index]
-            tokens[index] = "--" + tokens[index]
+        dash_chars = ['-', '—']
+        for dash in dash_chars:
+            if tokens[index] == dash:
+                del tokens[index]
+                tokens[index] = dash + tokens[index]
         index += 1
 
     for key, value in parameters.items():
@@ -59,6 +61,51 @@ def parse(prompt: str, argument_list=None):
 
     return " ".join(tokens), parameters
 
+
+def parse_replace(prompt):
+    arglist = []
+    argindex = 0
+    in_quotes = False
+    parameter_locations = []
+
+    for c in prompt:
+        if len(arglist) == argindex:
+            arglist.append("")
+
+        if c == " " and not in_quotes:
+            argindex += 1
+            continue
+
+        if arglist[argindex] == "[":
+            parameter_locations.append(argindex)
+            in_quotes = True
+
+        if arglist[argindex] == "]":
+            argindex += 1
+            in_quotes = False
+            continue
+
+        if len(arglist) == argindex:
+            arglist.append("")
+
+        arglist[argindex] += c
+
+    parameters = []
+
+    for x in reversed(parameter_locations):
+        param = arglist[x]
+
+        if '=' not in param or param.count('=') > 1:
+            continue
+        parameters.append(param)
+        del arglist[x]
+
+    replacements = dict()
+
+    for x in parameters:
+        key, value = x[1:-1].split('=')
+        replacements[key] = value
+    return replacements
 
 async def add_reaction_emojis(message: Message, emojis: list):
     for emoji in emojis:

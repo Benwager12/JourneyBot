@@ -36,7 +36,7 @@ class ImageView(discord.ui.View):
         await interaction.message.add_files(discord.File(f"images/{job_id}.png"))
 
         message = await interaction.original_response()
-        await message.edit(content="Finished redoing the image, new job id is `{job_id}`.")
+        await message.edit(content=f"Finished redoing the image, the new job id is `{job_id}`.")
 
     @discord.ui.button(label="Delete", style=discord.ButtonStyle.red)
     async def delete(self, interaction: Interaction, button: discord.ui.Button):
@@ -56,8 +56,15 @@ class ImageView(discord.ui.View):
             job = images.lookup_job(job_id)
             if job is None:
                 return
-            params = json.loads(job[2])
-            param_str.append(f"`{job_id} - seed {job[1]}`:\n```json\n{params}```")
+            try:
+                params = json.loads(job[2])
+            except json.JSONDecodeError:
+                await interaction.response.send_message(
+                    "This image was created before the parameters were saved, so I can't show them.",
+                    ephemeral=True
+                )
+                return
+            param_str.append(f"`{job_id}` - seed `{job[1]}`, model {job[4]}:\n```json\n{params}```")
 
         await interaction.response.send_message(
             f"Here are the parameters:\n\n" + "\n".join(param_str),
