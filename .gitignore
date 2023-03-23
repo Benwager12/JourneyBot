@@ -4,3 +4,5 @@
 /*.sqlite3
 /.idea/
 /allowed_users.txt
+.DS_Store
+*.pyc
