@@ -4,7 +4,7 @@ import json
 import requests
 from discord import Message, User
 
-from helpers.database import images
+from helpers.database import images, user_settings
 from helpers.file import models, config
 
 BASE_URL = "https://api.runpod.ai/v1"
@@ -14,18 +14,36 @@ headers = {
 }
 
 
-def make_job(params, user_model) -> int:
+def make_job(params, user_id) -> int:
+    user_model = user_settings.get_default(user_id, "model_id", 0)
     run_url = f"{BASE_URL}/{models.get(user_model)['endpoint_id']}/run"
-    response = requests.post(run_url, headers=headers, json=params)
-    response_json = response.json()
+    user_runpod = user_settings.get(user_id, "runpod_key")
+    this_headers = headers.copy()
+    if user_runpod:
+        this_headers['Authorization'] = f"Bearer {user_runpod}"
 
+    print(this_headers)
+
+    response = requests.post(run_url, headers=this_headers, json=params)
+    response_json = response.json()
+    print(response_json)
     return response_json['id']
 
 
-def get_job_status(job_id, user_model) -> (int, str):
-    status_url = f"{BASE_URL}/{models.get(user_model)['endpoint_id']}/status/{job_id}"
-    response = requests.post(status_url, headers=headers)
+def get_job_status(job_id, user_id) -> (int, str):
+    user_model = user_settings.get_default(user_id, "model_id", 0)
 
+    status_url = f"{BASE_URL}/{models.get(user_model)['endpoint_id']}/status/{job_id}"
+
+    this_headers = headers.copy()
+
+    user_runpod = user_settings.get(user_id, "runpod_key")
+    if user_runpod:
+        this_headers['Authorization'] = f"Bearer {user_runpod}"
+
+    response = requests.post(status_url, headers=this_headers)
+
+    print(response.text)
     response_json = response.json()
 
     if not response.status_code == 200:
@@ -102,8 +120,8 @@ async def create_image(params, model_id, message: Message, author: User):
     print(f"User {author} ({author.id}) is creating an image with model {models.get(model_id)['name']} and prompt "
           f"\"{params['input']['prompt']}\".")
 
-    job_id = make_job(params, model_id)
-    output, message = await wait_job(message, job_id, model_id)
+    job_id = make_job(params, author.id)
+    output, message = await wait_job(message, job_id, author.id)
 
     for image in output:
         images.insert_image(job_id, image['seed'], params, author.id, model_id)

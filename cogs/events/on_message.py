@@ -6,7 +6,7 @@ from discord import Message
 from discord.ext import commands
 
 from helpers.checks.IsOwnerId import is_owner_user
-from helpers.database import images
+from helpers.database import images, user_settings
 from helpers.file import models
 from helpers.jobs import runpod, prompt
 from helpers.views.image_view import ImageView
@@ -91,7 +91,8 @@ class OnMessage(commands.Cog):
                 del parsed_params['negative']
 
             if 'steps' in parsed_params and isinstance(parsed_params['steps'], int):
-                parsed_params['num_inference_steps'] = min(100, max(parsed_params['steps'], 20))
+                parsed_params['num_inference_steps'] = min(100, max(parsed_params['steps'], 20))\
+            if user_settings.get("runpod_key") is None else min(499, max(parsed_params['steps'], 20))
                 del parsed_params['steps']
 
             if 'model' in parsed_params:
