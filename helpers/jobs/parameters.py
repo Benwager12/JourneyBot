@@ -1,5 +1,6 @@
 import json
 
+from helpers.checks import HasOwnRunpodKey
 from helpers.database import user_settings
 from helpers.jobs import prompt
 
@@ -35,9 +36,9 @@ def make_params(user_id, use_prompt) -> dict:
         del prompt_overrides['negative']
 
     if 'steps' in prompt_overrides and isinstance(prompt_overrides['steps'], int):
-
+        print("hm??")
         prompt_overrides['num_inference_steps'] = min(100, max(prompt_overrides['steps'], 20))\
-            if user_settings.get("runpod_key") is None else min(499, max(prompt_overrides['steps'], 20))
+            if HasOwnRunpodKey.has_own_runpod_key(user_id) is None else min(499, max(prompt_overrides['steps'], 20))
         del prompt_overrides['steps']
 
     prompt_overrides['prompt'] = output_prompt
