@@ -34,20 +34,29 @@ class View(commands.Cog):
 
         job = images.lookup_job(job_id)
 
+        alias_used = False
+
         if job is None:
-            await ctx.reply("That job id does not exist.")
-            return
+            job = images.lookup_alias(job_id, ctx.author.id)
+            job_id = job[0]
+
+            alias_used = True
+            if job is None:
+                await ctx.reply("That job id does not exist.")
+                return
 
         job_prompt: str = job[2]
         if job_prompt.startswith("{"):
             job_prompt = json.loads(job_prompt)['input']['prompt']
 
-        message = await ctx.reply(f"Now viewing prompt `{job_prompt}`, (Job ID: `{job_id}`).")
-        await message.add_files()
+        view_message = f"Now viewing prompt `{job_prompt}`, (Job ID: `{job_id}`)."
+        if alias_used:
+            view_message = f"Now viewing alias `{job[7]}`."
+
+        message = await ctx.reply(view_message)
         await message.edit(
-            content=message.content,
             attachments=[discord.File(f"images/{job_id}.png")],
-            view=ImageView()
+            view=(ImageView() if not alias_used else None)
         )
 
 

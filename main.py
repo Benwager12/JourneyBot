@@ -92,6 +92,7 @@ def setup_wizard():
     print("Running schema to check if tables exist...")
     with sqlite3.connect(config.get('DATABASE_FILE')) as con:
         with open(".schema", "r") as f:
+            print(f.read())
             con.executescript(f.read())
 
     modifications = parse.table_changes_to_match_schema()

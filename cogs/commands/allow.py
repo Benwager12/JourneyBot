@@ -1,9 +1,9 @@
 import discord
 from discord.ext import commands
-from discord.ext.commands import Context, dm_only, guild_only
+from discord.ext.commands import Context
 
-from helpers.checks.IsOwnerId import owner_check, is_owner_user
-from helpers.file import config, allowed_users
+from helpers.checks.IsOwnerId import is_owner_user
+from helpers.file import allowed_users
 from helpers.string import subcommand
 
 

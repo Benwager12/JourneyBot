@@ -4,7 +4,8 @@ CREATE TABLE IF NOT EXISTS images (
     parameters     VARCHAR,
     author_id      VARCHAR,
     model_id       INTEGER,
-    insertion_time INTEGER
+    insertion_time INTEGER,
+    alias          VARCHAR
 );
 
 CREATE TABLE IF NOT EXISTS user_settings (

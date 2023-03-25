@@ -21,6 +21,10 @@ def lookup_job(job_id: str):
         return job
 
 
+def belongs_to(job, user_id):
+    return int(job[3]) == user_id
+
+
 def insert_image(job_id, seed, params, author_id, model_id):
     insertion_sql = f"INSERT INTO images (job_id, seed, parameters, author_id, model_id, insertion_time) " \
                     f"VALUES (?, ?, ?, ?, ?, ?)"
@@ -130,3 +134,57 @@ def get_latest_job_id(author_id: int):
         if job is None:
             return None
         return job[0]
+
+
+def alias_exists(alias, user_id):
+    alias_sql = "SELECT * FROM images WHERE alias = ? AND author_id = ?"
+
+    with sqlite3.connect(config.get('DATABASE_FILE', 'database.sqlite3')) as con:
+        cur = con.cursor()
+
+        cur.execute(alias_sql, [alias, user_id])
+        alias = cur.fetchone()
+
+        return not alias is None
+
+
+def set_alias(job_id, alias):
+    alias_sql = "UPDATE images SET alias = ? WHERE job_id = ?"
+
+    with sqlite3.connect(config.get('DATABASE_FILE', 'database.sqlite3')) as con:
+        cur = con.cursor()
+
+        cur.execute(alias_sql, [alias, job_id])
+    con.commit()
+
+
+def lookup_alias(alias, user_id):
+    alias_sql = "SELECT * FROM images WHERE alias = ? AND author_id = ?"
+
+    with sqlite3.connect(config.get('DATABASE_FILE', 'database.sqlite3')) as con:
+        cur = con.cursor()
+
+        cur.execute(alias_sql, [alias, user_id])
+        job_alias = cur.fetchone()
+
+        return job_alias
+
+
+def remove_alias(alias, user_id):
+    delete_alias_sql = "UPDATE images SET alias = NULL WHERE alias = ? AND author_id = ?"
+
+    with sqlite3.connect(config.get('DATABASE_FILE', 'database.sqlite3')) as con:
+        cur = con.cursor()
+        cur.execute(delete_alias_sql, [alias, user_id])
+
+
+def get_aliases(user_id):
+    alias_sql = "SELECT * FROM images WHERE author_id = ? AND alias IS NOT NULL"
+
+    with sqlite3.connect(config.get('DATABASE_FILE', 'database.sqlite3')) as con:
+        cur = con.cursor()
+
+        cur.execute(alias_sql, [user_id])
+        aliases = cur.fetchall()
+
+        return aliases
