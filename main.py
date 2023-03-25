@@ -95,11 +95,18 @@ def setup_wizard():
             con.executescript(f.read())
 
     modifications = parse.table_changes_to_match_schema()
+
     if modifications:
+        for table, modifications_table in modifications.items():
+            for col_name, modification in modifications_table.items():
+                if modification.startswith("MISMATCH"):
+                    _, current_type, expected_type = modification.split(" ")
+                    print(f"Column '{col_name}' in table '{table}' has type '{current_type}', "
+                          f"should have type '{expected_type}'.")
+
         print("Modifying tables to match schema...")
         with sqlite3.connect(config.get('DATABASE_FILE')) as con:
             modification_sql = parse.get_sql_modifications(modifications)
-            print(modification_sql)
             con.executescript(modification_sql)
 
     print("Setup wizard complete!\n")

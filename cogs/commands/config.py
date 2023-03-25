@@ -132,7 +132,6 @@ class Config(commands.Cog):
             await ctx.reply(f"The prefix has been set to `{prefix}`.")
         config.save()
 
-
     @_set.command(name="discord")
     async def _discord_set(self, ctx: Context):
         await ctx.reply("You're gonna need to do this with a reset of the bot, sorry.")

@@ -55,10 +55,9 @@ def table_changes_to_match_schema():
                 tbl_type = tbl_data.get(column_name)
                 if tbl_type is not None:
                     if tbl_type.lower() != column_type.lower():
-                        print(f"Column type mismatch with column '{column_name}' in '{table}', is {tbl_type} "
-                              f"but should be {column_type}.")
+                        modify[column_name] = f"MISMATCH {tbl_type} {column_type}"
                 else:
-                    modify[column_name] = f"ADD {column_type} {column_type}"
+                    modify[column_name] = f"ADD {column_name} {column_type}"
 
             if len(modify) > 0:
                 modifications[table] = modify
@@ -70,6 +69,8 @@ def get_sql_modifications(modifications: dict):
 
     for table, columns in modifications.items():
         for column, action in columns.items():
+            if action.startswith("MISMATCH"):
+                continue
             modify_sql.append(f"ALTER TABLE {table} {action};")
 
     return "\n".join(modify_sql)
