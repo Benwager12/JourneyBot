@@ -92,7 +92,7 @@ class OnMessage(commands.Cog):
 
             if 'steps' in parsed_params and isinstance(parsed_params['steps'], int):
                 parsed_params['num_inference_steps'] = min(100, max(parsed_params['steps'], 20))\
-            if user_settings.get("runpod_key") is None else min(499, max(parsed_params['steps'], 20))
+            if user_settings.get("runpod_key", message.author.id) is None else min(499, max(parsed_params['steps'], 20))
                 del parsed_params['steps']
 
             if 'model' in parsed_params:
