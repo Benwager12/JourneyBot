@@ -1,17 +1,17 @@
 CREATE TABLE IF NOT EXISTS images (
-    job_id         varchar,
-    seed           int,
-    parameters     varchar,
-    author_id      varchar,
-    model_id       integer,
-    insertion_time integer
+    job_id         VARCHAR,
+    seed           INTEGER,
+    parameters     VARCHAR,
+    author_id      VARCHAR,
+    model_id       INTEGER,
+    insertion_time INTEGER
 );
 
 CREATE TABLE IF NOT EXISTS user_settings (
-    user_id         varchar,
+    user_id         VARCHAR,
     model_id        INTEGER,
     width           INTEGER,
     height          INTEGER,
-    negative_prompt varchar,
-    runpod_key      varchar
+    negative_prompt VARCHAR,
+    runpod_key      VARCHAR
 );

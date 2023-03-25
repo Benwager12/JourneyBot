@@ -9,6 +9,7 @@ from discord import utils
 from discord.ext import commands
 
 from helpers.checks.IsAllowedUser import is_allowed
+from helpers.database import parse
 from helpers.file import config
 
 intents = discord.Intents.default()
@@ -93,6 +94,14 @@ def setup_wizard():
         with open(".schema", "r") as f:
             con.executescript(f.read())
 
+    modifications = parse.table_changes_to_match_schema()
+    if modifications:
+        print("Modifying tables to match schema...")
+        with sqlite3.connect(config.get('DATABASE_FILE')) as con:
+            modification_sql = parse.get_sql_modifications(modifications)
+            print(modification_sql)
+            con.executescript(modification_sql)
+
     print("Setup wizard complete!\n")
 
 
@@ -115,6 +124,9 @@ async def main():
             run_setup_wizard = True
 
     if not os.path.exists("images"):
+        run_setup_wizard = True
+
+    if len(parse.table_changes_to_match_schema()) > 0:
         run_setup_wizard = True
 
     if run_setup_wizard:
