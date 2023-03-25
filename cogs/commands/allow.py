@@ -4,6 +4,7 @@ from discord.ext.commands import Context, dm_only, guild_only
 
 from helpers.checks.IsOwnerId import owner_check, is_owner_user
 from helpers.file import config, allowed_users
+from helpers.string import subcommand
 
 
 class Allow(commands.Cog):
@@ -14,7 +15,8 @@ class Allow(commands.Cog):
     async def _allow(self, ctx: Context):
         if ctx.invoked_subcommand is not None:
             return
-        await ctx.reply("No subcommand specified. Try using `add` and `remove`.")
+        subcommand_str = subcommand.subcommand_string(self._allow)
+        await ctx.reply(f"No subcommand specified. Try using {subcommand_str}.")
 
     @_allow.command()
     async def add(self, ctx: Context, user: discord.Member):

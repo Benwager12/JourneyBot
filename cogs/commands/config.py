@@ -6,6 +6,7 @@ from helpers.checks import IsOwnerId
 from helpers.checks.IsOwnerId import owner_check
 from helpers.database import user_settings
 from helpers.file import config
+from helpers.string import subcommand
 
 
 class Config(commands.Cog):
@@ -16,19 +17,25 @@ class Config(commands.Cog):
     async def _config(self, ctx: Context):
         if ctx.invoked_subcommand is not None:
             return
-        await ctx.reply("No subcommand specified. Try using `get` and `set`.")
+        subcommand_str = subcommand.subcommand_string(self._config)
+
+        await ctx.reply(f"No subcommand specified. Try using {subcommand_str}.")
 
     @_config.group(name="set", aliases=["change", "update", "edit", "modify"])
     async def _set(self, ctx: Context):
         if ctx.invoked_subcommand is not None:
             return
-        await ctx.reply("No subcommand specified. Try using `owner`.")
+        subcommand_str = subcommand.subcommand_string(self._set)
+
+        await ctx.reply(f"No subcommand specified. Try using {subcommand_str}.")
 
     @_config.group(name="get", aliases=["show", "display", "view", "print"])
     async def _get(self, ctx: Context):
         if ctx.invoked_subcommand is not None:
             return
-        await ctx.reply("No subcommand specified. Try using `owner`, `runpod`.")
+        subcommand_str = subcommand.subcommand_string(self._set)
+
+        await ctx.reply(f"No subcommand specified. Try using {subcommand_str}.")
 
     @_get.command(name="runpod")
     async def _runpod_get(self, ctx: Context):
@@ -59,9 +66,16 @@ class Config(commands.Cog):
     @_get.command(name="owner")
     async def _owner_get(self, ctx: Context):
         owner_id = int(config.get('OWNER_ID'))
+        reply_message = f"The owner's ID is `{owner_id}`"
+
+        if ctx.message.channel.type == discord.ChannelType.private:
+            await ctx.reply(reply_message + ".")
+            return
+
+        reply_message += ", "
+
         potential_owner = await ctx.guild.fetch_member(owner_id)
 
-        reply_message = f"The owner's ID is `{owner_id}`, "
         if potential_owner == ctx.author:
             await ctx.reply(reply_message + "and that's you!")
             return
@@ -70,6 +84,11 @@ class Config(commands.Cog):
             await ctx.reply(reply_message + "but I can't find them in this server.")
         else:
             await ctx.reply(reply_message + f"but you may know them as `{potential_owner.display_name}`.")
+
+    @_get.command(name="prefix")
+    async def _prefix_get(self, ctx: Context):
+        prefix = config.get('PREFIX', default="*")
+        await ctx.reply(f"The prefix is `{prefix}`.")
 
     @_set.command(name="owner")
     @owner_check()
@@ -102,9 +121,16 @@ class Config(commands.Cog):
             user_settings.set(ctx.author.id, "runpod_key", runpod)
             await ctx.reply(f"Your runpod key has been set to `{runpod}`.")
 
-
-
-
+    @_set.command(name="prefix")
+    @owner_check()
+    async def _prefix_set(self, ctx: Context, prefix: str = None):
+        if not prefix:
+            config.set('PREFIX', "*")
+            await ctx.reply("The preset has been reset to the default.")
+        else:
+            config.set('PREFIX', prefix)
+            await ctx.reply(f"The prefix has been set to `{prefix}`.")
+        config.save()
 
 
     @_set.command(name="discord")

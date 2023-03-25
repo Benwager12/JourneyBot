@@ -151,6 +151,15 @@ class OnMessage(commands.Cog):
             else:
                 await reference_message.edit(view=GalleryPageView())
 
+        if message.content.lower().startswith("del"):
+            marked = message.content.split(" ")[1:]
+            for x in marked:
+                try:
+                    message = await channel.fetch_message(int(x))
+                except discord.NotFound:
+                    continue
+                await message.delete()
+
 
 async def setup(bot):
     await bot.add_cog(OnMessage(bot))

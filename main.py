@@ -14,7 +14,15 @@ from helpers.file import config
 intents = discord.Intents.default()
 intents.message_content = True
 
-bot = commands.Bot(command_prefix='*', intents=intents)
+
+def get_prefix(_, message):
+    if message.guild:
+        return config.get("PREFIX", "*")
+    else:
+        return ""  # No prefix in DMs
+
+
+bot = commands.Bot(command_prefix=get_prefix, intents=intents)
 
 bot.add_check(is_allowed)
 
