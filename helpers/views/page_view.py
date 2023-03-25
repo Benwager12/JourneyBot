@@ -32,7 +32,8 @@ class GalleryPageView(discord.ui.View):
                 ephemeral=True
             )
         _, embed = images.get_gallery_embed(interaction.user.id, int(page) - 1)
-        await interaction.message.edit(embed=embed)
+        await interaction.message.edit(embed=embed,
+                                       view=GalleryPageView())
 
     @discord.ui.button(label="Next", style=discord.ButtonStyle.primary)
     async def next_page(self, interaction: Interaction, button: discord.ui.Button):
@@ -46,7 +47,8 @@ class GalleryPageView(discord.ui.View):
             )
 
         _, embed = images.get_gallery_embed(interaction.user.id, int(page) + 1)
-        await interaction.message.edit(embed=embed)
+        await interaction.message.edit(embed=embed,
+                                       view=GalleryPageView())
 
     @discord.ui.button(label="Last", style=discord.ButtonStyle.primary)
     async def last_page(self, interaction: Interaction, button: discord.ui.Button):
@@ -60,4 +62,5 @@ class GalleryPageView(discord.ui.View):
             )
 
         _, embed = images.get_gallery_embed(interaction.user.id, page_amount)
-        await interaction.message.edit(embed=embed)
+        await interaction.message.edit(embed=embed,
+                                       view=GalleryPageView())

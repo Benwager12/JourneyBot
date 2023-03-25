@@ -18,7 +18,7 @@ def parse(prompt: str, argument_list=None):
             token_index += 1
             continue
 
-        if c == "\"":
+        if c == "\"" or c == "'" or c == "“" or c == "”":
             in_quotes = not in_quotes
             continue
 
@@ -106,6 +106,7 @@ def parse_replace(prompt):
         key, value = x[1:-1].split('=')
         replacements[key] = value
     return replacements
+
 
 async def add_reaction_emojis(message: Message, emojis: list):
     for emoji in emojis:
