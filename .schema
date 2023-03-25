@@ -9,8 +9,9 @@ CREATE TABLE IF NOT EXISTS images (
 
 CREATE TABLE IF NOT EXISTS user_settings (
     user_id         varchar,
-    model_id        integer,
-    width           integer,
-    height          integer,
-    negative_prompt varchar
+    model_id        INTEGER,
+    width           INTEGER,
+    height          INTEGER,
+    negative_prompt varchar,
+    runpod_key      varchar
 );
