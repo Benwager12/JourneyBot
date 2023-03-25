@@ -5,6 +5,7 @@ from discord.ext import commands
 
 from helpers.database import user_settings
 from helpers.jobs import runpod, parameters
+from helpers.jobs.runpod import job_location
 from helpers.views.image_view import ImageView
 
 
@@ -40,13 +41,16 @@ class Prompt(commands.Cog):
             runpod.create_image(params, user_model, message, ctx.author)
         )])
 
-        job_ids = runpod.get_job_ids_from_task(create_task)
+        job_id = runpod.get_job_id_from_task(create_task)[0]
 
-        file_list = [discord.File(f"images/{jobs}.png") for jobs in job_ids]
-        job_id_list = ", ".join([f"{job}" for job in job_ids])
+        file_list = job_location(job_id)
+        print(file_list)
+        file_list = [discord.File(file) for file in file_list]
+
         await message.edit(
-            content=f"Making a photo with prompt `{prompt}`... (Jobs: `{job_id_list}`)",
-            attachments=file_list, view=ImageView()
+            content=f"Making a photo with prompt `{prompt}`... (Job: `{job_id}`)",
+            attachments=file_list,
+            view=ImageView()
         )
 
 

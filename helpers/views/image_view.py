@@ -18,6 +18,20 @@ class ImageView(discord.ui.View):
                 ephemeral=True
             )
             return
+
+        if len(interaction.message.embeds) == 0:
+            await interaction.response.send_message(
+                content="There is no image to redo.",
+                ephemeral=True
+            )
+            return
+
+        if len(interaction.message.embeds) > 9:
+            await interaction.response.send_message(
+                content="You can't redo this image because it has too many images",
+                ephemeral=True
+            )
+            return
         previous_job_id = interaction.message.content.split("`")[3].split(",")[0]
         job = images.lookup_job(previous_job_id)
         model_id = job[4]
@@ -32,7 +46,7 @@ class ImageView(discord.ui.View):
             runpod.create_image(params, model_id, interaction.message, interaction.user)
         )])
 
-        job_id = runpod.get_job_ids_from_task(create_task)[0]
+        job_id = runpod.get_job_id_from_task(create_task)[0]
         await interaction.message.add_files(discord.File(f"images/{job_id}.png"))
 
         message = await interaction.original_response()

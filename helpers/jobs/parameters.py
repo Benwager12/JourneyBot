@@ -29,14 +29,20 @@ def make_params(user_id, use_prompt) -> dict:
         "negative_prompt": negative_prompt
     }
 
-    output_prompt, prompt_overrides = prompt.parse(use_prompt, ["width", "height", "negative", "model", "steps"])
+    output_prompt, prompt_overrides = prompt.parse(
+        use_prompt,
+        ["width", "height", "negative", "model", "steps", "batch"]
+    )
 
     if 'negative' in prompt_overrides:
         prompt_overrides['negative_prompt'] = prompt_overrides['negative']
         del prompt_overrides['negative']
 
+    if 'batch' in prompt_overrides and isinstance(prompt_overrides['batch'], int):
+        prompt_overrides['num_outputs'] = min(10, max(prompt_overrides['batch'], 1))
+        del prompt_overrides['batch']
+
     if 'steps' in prompt_overrides and isinstance(prompt_overrides['steps'], int):
-        print("hm??")
         prompt_overrides['num_inference_steps'] = min(100, max(prompt_overrides['steps'], 20))\
             if HasOwnRunpodKey.has_own_runpod_key(user_id) is None else min(499, max(prompt_overrides['steps'], 20))
         del prompt_overrides['steps']

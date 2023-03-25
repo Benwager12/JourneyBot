@@ -43,7 +43,7 @@ class OnReactionAdd(commands.Cog):
             create_task = await asyncio.wait([asyncio.create_task(
                 runpod.create_image(params, model_id, reaction.message, user)
             )])
-            job_id = runpod.get_job_ids_from_task(create_task)[0]
+            job_id = runpod.get_job_id_from_task(create_task)[0]
             await reaction.message.add_files(discord.File(f"images/{job_id}.png"))
 
         if reaction.emoji in ["❌", "🚫", "🛑", "❎"]:

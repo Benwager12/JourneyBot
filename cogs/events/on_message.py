@@ -56,7 +56,7 @@ class OnMessage(commands.Cog):
             create_task = await asyncio.wait([asyncio.create_task(
                 runpod.create_image(params, model_id, reference_message, message.author)
             )])
-            job_id = runpod.get_job_ids_from_task(create_task)[0]
+            job_id = runpod.get_job_id_from_task(create_task)[0]
             await reference_message.add_files(discord.File(f"images/{job_id}.png"))
             return
 
@@ -129,7 +129,7 @@ class OnMessage(commands.Cog):
             create_task = await asyncio.wait([asyncio.create_task(
                 runpod.create_image(final_params, model_id, stylize_message, message.author)
             )])
-            job_id = runpod.get_job_ids_from_task(create_task)[0]
+            job_id = runpod.get_job_id_from_task(create_task)[0]
 
             await stylize_message.edit(
                 content=f"Created stylize of image with prompt `{final_prompt}`... (Job ID: `{job_id}`)",

@@ -1,5 +1,6 @@
 import asyncio
 import json
+import os
 
 import requests
 from discord import Message, User
@@ -100,8 +101,16 @@ async def wait_job(message: Message, job_id: int, user_model: int):
                 await message.edit(content=f"{message_beginning}\nImage is being generated...")
                 continue
 
-    for index, image in enumerate(output):
-        image_url = image['image']
+    if len(output) > 1:
+        os.mkdir(f"images/{job_id}")
+        for index, image in enumerate(output):
+            image_url = image['image']
+            r = requests.get(image_url)
+
+            with open(f"images/{job_id}/{index}.png", "wb") as f:
+                f.write(r.content)
+    else:
+        image_url = output[0]['image']
         r = requests.get(image_url)
 
         with open(f"images/{job_id}.png", "wb") as f:
@@ -128,9 +137,15 @@ async def create_image(params, model_id, message: Message, author: User):
     return job_id
 
 
-def get_job_ids_from_task(task):
+def get_job_id_from_task(task):
     ids = []
     for t in task:
         for ti in t:
             ids.append(ti.result())
     return ids
+
+def job_location(job_id):
+    if os.path.isdir(f"images/{job_id}"):
+        return [f"images/{job_id}/{file}" for file in os.listdir(f"images/{job_id}")]
+    else:
+        return [f"images/{job_id}.png"]
