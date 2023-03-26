@@ -13,7 +13,7 @@ class Prompt(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.command(aliases=["c", "make", "generate"])
+    @commands.command(aliases=["c", "make", "generate"], help="Create a photo with a prompt.")
     async def create(self, ctx, *args):
         if len(args) == 0:
             await ctx.send("Please provide a prompt.")

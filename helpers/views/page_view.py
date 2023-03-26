@@ -11,9 +11,9 @@ from helpers.jobs import runpod
 
 class PaginatedView(discord.ui.View):
 
-    def __init__(self, paginated_type: str = "Gallery"):
+    def __init__(self, page_function: callable = images.get_gallery_embed):
         super().__init__()
-        self.paginated_type = paginated_type
+        self.page_function = page_function
 
     @discord.ui.button(label="First", style=discord.ButtonStyle.primary)
     async def first_page(self, interaction: Interaction, button: discord.ui.Button):
@@ -26,17 +26,11 @@ class PaginatedView(discord.ui.View):
             )
             return
 
-        embed = None
-
-        match self.paginated_type:
-            case "Gallery":
-                _, embed = images.get_gallery_embed(interaction.user.id, 1)
-            case "Favourites":
-                _, embed = user_settings.get_favourites_embed(interaction.user.id, 1)
+        _, embed = self.page_function(interaction.user.id, 1)
 
         await interaction.message.edit(
             embed=embed,
-            view=PaginatedView(self.paginated_type)
+            view=PaginatedView(self.page_function)
         )
 
     @discord.ui.button(label="Previous", style=discord.ButtonStyle.primary)
@@ -50,17 +44,11 @@ class PaginatedView(discord.ui.View):
             )
             return
 
-        embed = None
-
-        match self.paginated_type:
-            case "Gallery":
-                _, embed = images.get_gallery_embed(interaction.user.id, int(page) - 1)
-            case "Favourites":
-                _, embed = user_settings.get_favourites_embed(interaction.user.id, int(page) - 1)
+        _, embed = self.page_function(interaction.user.id, 1)
 
         await interaction.message.edit(
             embed=embed,
-            view=PaginatedView(self.paginated_type)
+            view=PaginatedView(self.page_function)
         )
 
     @discord.ui.button(label="Next", style=discord.ButtonStyle.primary)
@@ -75,17 +63,11 @@ class PaginatedView(discord.ui.View):
             )
             return
 
-        embed = None
-
-        match self.paginated_type:
-            case "Gallery":
-                _, embed = images.get_gallery_embed(interaction.user.id, int(page) + 1)
-            case "Favourites":
-                _, embed = user_settings.get_favourites_embed(interaction.user.id, int(page) + 1)
+        _, embed = self.page_function(interaction.user.id, 1)
 
         await interaction.message.edit(
             embed=embed,
-            view=PaginatedView(self.paginated_type)
+            view=PaginatedView(self.page_function)
         )
 
     @discord.ui.button(label="Last", style=discord.ButtonStyle.primary)
@@ -100,15 +82,9 @@ class PaginatedView(discord.ui.View):
             )
             return
 
-        embed = None
-
-        match self.paginated_type:
-            case "Gallery":
-                _, embed = images.get_gallery_embed(interaction.user.id, int(page_amount))
-            case "Favourites":
-                _, embed = user_settings.get_favourites_embed(interaction.user.id, int(page_amount))
+        _, embed = self.page_function(interaction.user.id, 1)
 
         await interaction.message.edit(
             embed=embed,
-            view=PaginatedView(self.paginated_type)
+            view=PaginatedView(self.page_function)
         )

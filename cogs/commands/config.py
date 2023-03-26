@@ -13,7 +13,7 @@ class Config(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.group(name="config")
+    @commands.group(name="config", help="Configure the bot.")
     async def _config(self, ctx: Context):
         if ctx.invoked_subcommand is not None:
             return

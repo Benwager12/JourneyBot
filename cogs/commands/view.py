@@ -13,7 +13,7 @@ class View(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.command()
+    @commands.command(help="View a job")
     async def view(self, ctx: Context, job_id: str = None):
         if job_id is None:
             await ctx.reply("Please provide a job id.")

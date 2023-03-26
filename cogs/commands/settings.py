@@ -11,8 +11,9 @@ from helpers.file import models
 class Settings(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.help = "Change your settings."
 
-    @commands.group(name="settings", aliases=["set"])
+    @commands.group(name="settings", aliases=["set"], help="Change your settings.")
     async def _settings(self, ctx: Context):
         if ctx.invoked_subcommand is not None:
             return

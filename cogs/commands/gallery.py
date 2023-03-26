@@ -10,7 +10,7 @@ class Gallery(commands.Cog):
         self.bot = bot
 
     @dm_only()
-    @commands.command(name="gallery", aliases=["g", "viewall"])
+    @commands.command(name="gallery", aliases=["g", "viewall"], help="View all of your jobs.")
     async def _gallery(self, ctx, page_number: int = 1):
         page_amount = images.get_page_amount(ctx.author.id)
 

@@ -10,7 +10,7 @@ class Favourites(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.group(name="favourites", aliases=["favs", "favourite", "fav"])
+    @commands.group(name="favourites", aliases=["favs", "favourite", "fav"], help="View your favourite jobs.")
     async def _favourites(self, ctx: Context):
         if ctx.invoked_subcommand is not None:
             return
@@ -69,7 +69,11 @@ class Favourites(commands.Cog):
             return
 
         reply, embed = user_settings.get_favourites_embed(ctx.author.id, page_number)
-        await ctx.send(reply, embed=embed, view=PaginatedView("Favourites"))
+        await ctx.send(
+            content= reply,
+            embed=embed,
+            view= PaginatedView(user_settings.get_favourites_embed)
+        )
 
 
 async def setup(bot):

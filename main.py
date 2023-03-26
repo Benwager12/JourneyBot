@@ -23,7 +23,7 @@ def get_prefix(_, message):
         return ""  # No prefix in DMs
 
 
-bot = commands.Bot(command_prefix=get_prefix, intents=intents)
+bot = commands.Bot(command_prefix=get_prefix, intents=intents, help_command=None)
 
 bot.add_check(is_allowed)
 

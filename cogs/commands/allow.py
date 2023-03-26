@@ -10,6 +10,7 @@ from helpers.string import subcommand
 class Allow(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.help = "Allow users to use the bot."
 
     @commands.group(name="allow")
     async def _allow(self, ctx: Context):

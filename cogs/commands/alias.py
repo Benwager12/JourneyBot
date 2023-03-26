@@ -9,7 +9,7 @@ class Alias(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.group(name="alias")
+    @commands.group(name="alias", aliases=["aliases"], help="Create aliases for your jobs.")
     async def _alias(self, ctx: Context):
         if ctx.invoked_subcommand is not None:
             return
