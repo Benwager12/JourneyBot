@@ -2,7 +2,7 @@ from discord.ext import commands
 from discord.ext.commands import dm_only
 
 from helpers.database import images
-from helpers.views.page_view import GalleryPageView
+from helpers.views.page_view import PaginatedView
 
 
 class Gallery(commands.Cog):
@@ -17,7 +17,7 @@ class Gallery(commands.Cog):
         page_number = max(1, min(page_number, page_amount))
 
         reply, embed = images.get_gallery_embed(ctx.author.id, page_number)
-        await ctx.send(reply, embed=embed, view=GalleryPageView())
+        await ctx.send(reply, embed=embed, view=PaginatedView())
 
 
 async def setup(bot):

@@ -5,6 +5,7 @@ from discord.ext import commands
 from discord.ext.commands import Context, is_owner, dm_only
 
 from helpers.database import images
+from helpers.jobs import runpod
 from helpers.views.image_view import ImageView
 
 
@@ -54,8 +55,11 @@ class View(commands.Cog):
             view_message = f"Now viewing alias `{job[7]}`."
 
         message = await ctx.reply(view_message)
+        file_list = runpod.job_location(job_id)
+        file_list = [discord.File(file) for file in file_list]
+
         await message.edit(
-            attachments=[discord.File(f"images/{job_id}.png")],
+            attachments=file_list,
             view=(ImageView() if not alias_used else None)
         )
 

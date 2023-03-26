@@ -44,7 +44,6 @@ class Prompt(commands.Cog):
         job_id = runpod.get_job_id_from_task(create_task)[0]
 
         file_list = job_location(job_id)
-        print(file_list)
         file_list = [discord.File(file) for file in file_list]
 
         await message.edit(

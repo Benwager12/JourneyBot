@@ -10,7 +10,7 @@ from helpers.database import images, user_settings
 from helpers.file import models
 from helpers.jobs import runpod, prompt
 from helpers.views.image_view import ImageView
-from helpers.views.page_view import GalleryPageView
+from helpers.views.page_view import PaginatedView
 
 
 class OnMessage(commands.Cog):
@@ -149,7 +149,7 @@ class OnMessage(commands.Cog):
             if len(reference_message.content.split("`")) >= 4:
                 await reference_message.edit(view=ImageView())
             else:
-                await reference_message.edit(view=GalleryPageView())
+                await reference_message.edit(view=PaginatedView())
 
         if message.content.lower().startswith("del"):
             marked = message.content.split(" ")[1:]

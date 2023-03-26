@@ -14,5 +14,6 @@ CREATE TABLE IF NOT EXISTS user_settings (
     width           INTEGER,
     height          INTEGER,
     negative_prompt VARCHAR,
-    runpod_key      VARCHAR
+    runpod_key      VARCHAR,
+    favourites      VARCHAR
 );

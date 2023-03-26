@@ -4,6 +4,7 @@ import time
 
 import discord
 
+from helpers.database import user_settings
 from helpers.file import config
 
 
@@ -188,3 +189,4 @@ def get_aliases(user_id):
         aliases = cur.fetchall()
 
         return aliases
+
