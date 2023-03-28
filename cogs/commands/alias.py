@@ -70,7 +70,7 @@ class Alias(commands.Cog):
 
         alias_str = ""
         for alias in aliases:
-            alias_str += f"`{alias[7]}`: `{alias[0]}`\n"
+            alias_str += f"`{alias[6]}`: `{alias[0]}`\n"
 
         await ctx.reply(f"Your aliases:\n{alias_str}")
 

@@ -19,14 +19,14 @@ class ImageView(discord.ui.View):
             )
             return
 
-        if len(interaction.message.embeds) == 0:
+        if len(interaction.message.attachments) == 0:
             await interaction.response.send_message(
                 content="There is no image to redo.",
                 ephemeral=True
             )
             return
 
-        if len(interaction.message.embeds) > 9:
+        if len(interaction.message.attachments) > 9:
             await interaction.response.send_message(
                 content="You can't redo this image because it has too many images",
                 ephemeral=True

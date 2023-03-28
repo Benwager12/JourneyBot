@@ -121,11 +121,14 @@ class OnMessage(commands.Cog):
             parsed_params['prompt'] = final_prompt
 
             final_params = {**params['input'], **parsed_params}
+            if 'seed' in final_params and final_params['seed'] is None:
+                del final_params['seed']
             final_params = {
                 "input": final_params
             }
 
             stylize_message = await message.reply(f"Creating stylize of image with prompt `{final_prompt}`...")
+            print(final_params)
             create_task = await asyncio.wait([asyncio.create_task(
                 runpod.create_image(final_params, model_id, stylize_message, message.author)
             )])

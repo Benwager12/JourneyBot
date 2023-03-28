@@ -30,8 +30,7 @@ class Help(commands.Cog):
             await ctx.reply("That command does not exist.")
             return
 
-        print(f"Help for {command} requested by {ctx.author}. ({command.help})")
-        await ctx.reply(f"The command `{command}` has the following help text: \"{command.help}\"")
+        await ctx.reply(f"The command `{command}` has the following help text: `{command.help}`")
 
 
 async def setup(bot):
