@@ -23,7 +23,7 @@ def lookup_job(job_id: str):
 
 
 def belongs_to(job, user_id):
-    return int(job[3]) == user_id
+    return int(job[2]) == user_id
 
 
 def insert_image(job_id, seed, params, author_id, model_id):

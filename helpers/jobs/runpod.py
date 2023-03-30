@@ -126,6 +126,7 @@ async def create_image(params, model_id, message: Message, author: User):
             model_id = new_model
         del params['input']['model']
 
+    print(model_id)
     print(f"User {author} ({author.id}) is creating an image with model {models.get(model_id)['name']} and prompt "
           f"\"{params['input']['prompt']}\".")
 

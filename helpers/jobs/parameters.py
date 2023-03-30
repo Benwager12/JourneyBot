@@ -31,7 +31,7 @@ def make_params(user_id, use_prompt) -> dict:
 
     output_prompt, prompt_overrides = prompt.parse(
         use_prompt,
-        ["width", "height", "negative", "model", "steps", "batch"]
+        ["width", "height", "negative", "model", "steps", "batch", "init_image", "seed"]
     )
 
     if 'negative' in prompt_overrides:

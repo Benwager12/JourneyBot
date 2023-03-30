@@ -6,6 +6,7 @@ from discord import Interaction
 
 from helpers.checks.IsAllowedUser import is_allowed_user
 from helpers.database import images
+from helpers.file import models
 from helpers.jobs import runpod
 
 
@@ -34,14 +35,14 @@ class ImageView(discord.ui.View):
             return
         previous_job_id = interaction.message.content.split("`")[3].split(",")[0]
         job = images.lookup_job(previous_job_id)
-        model_id = job[4]
-        params = json.loads(job[2])
+        model_id = job[3]
+        params = json.loads(job[1])
 
         await interaction.response.send_message(
             content=f"Redoing the image with job id `{previous_job_id}`.",
             ephemeral=True
         )
-
+        print(model_id)
         create_task = await asyncio.wait([asyncio.create_task(
             runpod.create_image(params, model_id, interaction.message, interaction.user)
         )])
@@ -71,14 +72,16 @@ class ImageView(discord.ui.View):
             if job is None:
                 return
             try:
-                params = json.loads(job[2])
+                params = json.loads(job[1])
             except json.JSONDecodeError:
                 await interaction.response.send_message(
                     "This image was created before the parameters were saved, so I can't show them.",
                     ephemeral=True
                 )
                 return
-            param_str.append(f"`{job_id}` - seed `{job[1]}`, model {job[4]}:\n```json\n{params}```")
+            params["input"]["seed"] = job[5]
+            model_name = models.get(job[3])['name']
+            param_str.append(f"`{job_id}` - model `{model_name}`:\n```json\n{params}```")
 
         await interaction.response.send_message(
             f"Here are the parameters:\n\n" + "\n".join(param_str),

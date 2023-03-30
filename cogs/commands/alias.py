@@ -30,7 +30,7 @@ class Alias(commands.Cog):
         if job is None:
             await ctx.reply("That job ID does not exist.")
             return
-
+        print(job, ctx.author.id)
         if not images.belongs_to(job, ctx.author.id):
             await ctx.reply("You can only add aliases to your own jobs.")
             return

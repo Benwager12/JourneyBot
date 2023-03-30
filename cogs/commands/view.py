@@ -28,7 +28,7 @@ async def view_job(job_id, ctx, message):
         alias_used = True
         job_id = job[0]
 
-    job_prompt: str = job[2]
+    job_prompt: str = job[1]
     if job_prompt.startswith("{"):
         job_prompt = json.loads(job_prompt)['input']['prompt']
 
@@ -42,7 +42,7 @@ async def view_job(job_id, ctx, message):
         if alias_used:
             view_message = f"Now viewing `[{backtick_split[1]}], [alias: {job[6]}]`, (Job ID: `{new_job_ids}`)."
         else:
-            view_message = f"Now viewing `[{backtick_split[1]}], [prompt: {job_prompt}]` (Job ID: `{new_job_ids})."
+            view_message = f"Now viewing `[{backtick_split[1]}], [prompt: {job_prompt}]` (Job ID: `{new_job_ids}`)."
 
     file_list = runpod.job_location(job_id)
     file_list = [discord.File(file) for file in file_list]

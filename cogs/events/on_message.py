@@ -43,15 +43,15 @@ class OnMessage(commands.Cog):
             if job is None:
                 return
 
-            model_id = job[4]
+            model_id = job[3]
 
             # See if a model was specified
             if len(message.content.split(" ")) >= 2:
                 model_id = models.get_model_from_alias(message.content.split(" ")[1])
                 if model_id is None:
-                    model_id = job[4]
+                    model_id = job[3]
 
-            params = json.loads(job[2])
+            params = json.loads(job[1])
 
             create_task = await asyncio.wait([asyncio.create_task(
                 runpod.create_image(params, model_id, reference_message, message.author)
@@ -75,11 +75,11 @@ class OnMessage(commands.Cog):
             if job is None:
                 return
 
-            model_id = job[4]
+            model_id = job[3]
 
             new_prompt = " ".join(message.content.split(" ")[1::])
-            params = json.loads(job[2])
-            params['input']['seed'] = job[1]
+            params = json.loads(job[1])
+            params['input']['seed'] = job[5]
 
             params['input']['init_image'] = reference_message.attachments[0].url
 
