@@ -145,6 +145,7 @@ def get_job_id_from_task(task):
             ids.append(ti.result())
     return ids
 
+
 def job_location(job_id):
     if os.path.isdir(f"images/{job_id}"):
         return [f"images/{job_id}/{file}" for file in os.listdir(f"images/{job_id}")]

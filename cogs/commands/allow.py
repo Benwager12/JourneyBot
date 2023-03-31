@@ -3,7 +3,7 @@ from discord.ext import commands
 from discord.ext.commands import Context
 
 from helpers.checks.IsOwnerId import is_owner_user
-from helpers.file import allowed_users
+from helpers.database import allow_list
 from helpers.string import subcommand
 
 
@@ -25,7 +25,7 @@ class Allow(commands.Cog):
             await ctx.reply("You are only allowed to add users when you are in a guild.")
             return
 
-        if allowed_users.add(user.id):
+        if allow_list.add_user(user.id, ctx.author.id, ctx.guild.id):
             await ctx.reply(f"Added `{user.display_name}` to the allowed users list.")
         else:
             await ctx.reply(f"`{user.display_name}` is already on the allowed users list.")
@@ -36,7 +36,7 @@ class Allow(commands.Cog):
             await ctx.reply("You are only allowed to remove users when you are in a guild.")
             return
 
-        if allowed_users.remove(user.id):
+        if allow_list.remove_user(user.id):
             await ctx.reply(f"Removed `{user.display_name}` from the allowed users list.")
         else:
             await ctx.reply(f"`{user.display_name}` is not on the allowed users list.")

@@ -4,11 +4,11 @@ from discord.ext import commands
 from discord.ext.commands import CheckFailure, Context
 
 from helpers.checks.IsOwnerId import is_owner_user
-from helpers.file import allowed_users
+from helpers.database import allow_list
 
 
 def is_allowed_user(user_id):
-    return user_id in allowed_users.get() or is_owner_user(user_id)
+    return allow_list.is_user_allowed(user_id) or is_owner_user(user_id)
 
 
 def is_allowed(ctx: Context):

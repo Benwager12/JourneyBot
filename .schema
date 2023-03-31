@@ -17,3 +17,9 @@ CREATE TABLE IF NOT EXISTS user_settings (
     runpod_key      VARCHAR,
     favourites      VARCHAR
 );
+
+CREATE TABLE IF NOT EXISTS allow_list (
+    user_id   INTEGER,
+    added_by  INTEGER,
+    guild_id INTEGER
+);
