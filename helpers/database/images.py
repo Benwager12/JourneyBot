@@ -1,4 +1,5 @@
 import json
+import os.path
 import sqlite3
 import time
 
@@ -189,3 +190,14 @@ def get_aliases(user_id):
 
         return aliases
 
+
+def get_job_path(previous_job_id):
+    if previous_job_id is None:
+        return None
+
+    if os.path.exists("images/" + str(previous_job_id)):
+        return os.listdir("images/" + str(previous_job_id))
+    elif os.path.exists("images/" + str(previous_job_id) + ".png"):
+        return ["images/" + str(previous_job_id) + ".png"]
+    else:
+        return None
