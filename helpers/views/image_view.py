@@ -87,3 +87,37 @@ class ImageView(discord.ui.View):
             f"Here are the parameters:\n\n" + "\n".join(param_str),
             ephemeral=True
         )
+
+    @discord.ui.button(label="Save", style=discord.ButtonStyle.secondary)
+    async def save(self, interaction: Interaction, button: discord.ui.Button):
+        previous_job_id = interaction.message.content.split("`")[3].split(",")[0]
+        job = images.lookup_job(previous_job_id)
+        if job is None:
+            return
+
+        user = interaction.user
+        if not is_allowed_user(user.id):
+            await interaction.response.send_message(
+                content="You are not allowed to use this button.",
+                ephemeral=True
+            )
+            return
+
+        if len(interaction.message.attachments) == 0:
+            await interaction.response.send_message(
+                content="There is no image to save.",
+                ephemeral=True
+            )
+            return
+
+        channel = await interaction.user.create_dm()
+
+        message = await channel.send(
+            content=f"Here is the image you requested, job id `{previous_job_id}`."
+        )
+
+        image_files = images.get_job_path(previous_job_id)
+        image_files = [discord.File(image_file) for image_file in image_files]
+
+        for image_file in image_files:
+            await message.add_files(image_file)
