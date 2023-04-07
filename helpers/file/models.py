@@ -62,3 +62,11 @@ def get_model_from_alias(alias):
 
 def get_raw():
     return _models
+
+
+def all_model_aliases():
+    aliases = []
+    for model in _models:
+        aliases.extend(model['aliases'])
+    return aliases
+
