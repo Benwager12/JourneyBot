@@ -1,0 +1,101 @@
+{
+    "width": {
+        "aliases": [
+            "w"
+        ],
+        "bounds": [
+            128,
+            256,
+            384,
+            448,
+            512,
+            576,
+            640,
+            704,
+            768
+        ],
+        "bound_type": "equal"
+    },
+    "height": {
+        "aliases": [
+            "h"
+        ],
+        "bounds": [
+            128,
+            256,
+            384,
+            448,
+            512,
+            576,
+            640,
+            704,
+            768
+        ],
+        "bound_type": "equal"
+    },
+    "negative_prompt": {
+        "aliases": [
+            "negative",
+            "neg",
+            "n"
+        ]
+    },
+    "model_id": {
+        "aliases": [
+            "m"
+        ],
+        "bounds": [
+            "openjourney",
+            "oj",
+            "sd1",
+            "sdv1",
+            "sd2",
+            "sdv2",
+            "a3",
+            "anything3",
+            "av3",
+            "anythingv3",
+            "a4",
+            "anything4",
+            "av4",
+            "anythingv4"
+        ],
+        "bound_type": "equal"
+    },
+    "num_outputs": {
+        "aliases": [
+            "batch",
+            "amount",
+            "num"
+        ],
+        "bounds": [
+            1,
+            4
+        ],
+        "bound_type": "within"
+    },
+    "num_inference_steps": {
+        "aliases": [
+            "steps",
+            "s"
+        ],
+        "bounds": [
+            1,
+            100
+        ],
+        "bound_type": "within"
+    },
+    "init_image": {
+        "aliases": [
+            "init",
+            "init_image_path"
+        ]
+    },
+    "seed": {
+        "bounds": [
+            0,
+            4294967295
+        ],
+        "bound_type": "within"
+    }
+}
