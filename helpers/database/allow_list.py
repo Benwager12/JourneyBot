@@ -26,7 +26,7 @@ def remove_user(user_id):
 
 
 def get_users():
-    get_users_sql = "SELECT user_id FROM allow_list"
+    get_users_sql = "SELECT * FROM allow_list"
     with sqlite3.connect(config.get('DATABASE_FILE', 'database.sqlite3')) as con:
         cur = con.cursor()
         cur.execute(get_users_sql)
