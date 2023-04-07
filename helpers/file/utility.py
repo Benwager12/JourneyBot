@@ -16,6 +16,9 @@ class File:
         with open(self.filename, "a") as file:
             file.write("\n" + line)
 
+    def file_exists(self):
+        return os.path.isfile(self.filename)
+
 
 class FileIterator:
     def __init__(self, file: File):
@@ -74,6 +77,9 @@ class JsonFile(File):
 
     def __iter__(self):
         return JsonFileIterator(self)
+
+    def file_exists(self):
+        return os.path.isfile(self.filename)
 
 
 class JsonFileIterator:
